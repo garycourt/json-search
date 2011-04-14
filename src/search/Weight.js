@@ -1,22 +1,55 @@
-var Weight;
+/**
+ * @interface
+ */
 
-Weight = function () {};
+var Weight = function () {};
 
-Weight.prototype.explain;// = function (reader, doc) {};
+/**
+ * @param {Index} reader
+ * @param {DocumentID} doc
+ * @return {Explanation}
+ */
 
-Weight.prototype.getQuery;// = function () {};
+Weight.prototype.explain = function (reader, doc) {};
 
-Weight.prototype.getValue;// = function () {};
+/**
+ * @return {Query} 
+ */
 
-Weight.prototype.normalize;// = function (norm) {};
+Weight.prototype.getQuery = function () {};
 
-Weight.prototype.scorer;// = function (reader, scoreDocsInOrder, topScorer) {};
+/**
+ * @return {number}
+ */
 
-Weight.prototype.sumOfSquaredWeights;// = function () {};
+Weight.prototype.getValue = function () {};
 
-Weight.prototype.scoresDocsOutOfOrder = function () {
-	return false;
-};
+/**
+ * @param {number} norm
+ */
+
+Weight.prototype.normalize = function (norm) {};
+
+/**
+ * @param {Index} reader
+ * @param {boolean} scoreDocsInOrder
+ * @param {boolean} topScorer
+ * @return {Scorer}
+ */
+
+Weight.prototype.scorer = function (reader, scoreDocsInOrder, topScorer) {};
+
+/**
+ * @return {number}
+ */
+
+Weight.prototype.sumOfSquaredWeights = function () {};
+
+/**
+ * @return {boolean}
+ */
+
+Weight.prototype.scoresDocsOutOfOrder = function () {};
 
 
 exports.Weight = Weight;

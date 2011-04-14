@@ -1,0 +1,7 @@
+/**
+ * @constructor
+ */
+
+var Index = function () {};
+
+//...

@@ -1,14 +1,33 @@
-var Collector;
+/**
+ * @interface
+ */
 
-Collector = function () {};
+var Collector = function () {};
+
+/**
+ * @type {Scorer}
+ */
 
 Collector.prototype.scorer;
 
-Collector.prototype.collect;// = function () {};
+/**
+ * @param {DocumentID} doc
+ */
 
-Collector.prototype.setNextReader;// = function (reader, docBase) {};
+Collector.prototype.collect = function (doc) {};
 
-Collector.prototype.acceptsDocsOutOfOrder;// = function () {};
+/**
+ * @param {Index} reader
+ * @param {DocumentID} docBase
+ */
+
+Collector.prototype.setNextReader = function (reader, docBase) {};
+
+/**
+ * @return {boolean}
+ */
+
+Collector.prototype.acceptsDocsOutOfOrder = function () {};
 
 
 exports.Collector = Collector;

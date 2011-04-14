@@ -1,14 +1,34 @@
-var DocIdSetIterator;
+/**
+ * @interface
+ */
 
-DocIdSetIterator = function () {};
+var DocIdSetIterator = function () {};
+
+/**
+ * @const
+ * @type {number}
+ */
 
 DocIdSetIterator.NO_MORE_DOCS = Number.MAX_VALUE;
 
-DocIdSetIterator.prototype.docID;// = function () {};
+/**
+ * @return {DocumentID}
+ */
 
-DocIdSetIterator.prototype.nextDoc;// = function () {};
+DocIdSetIterator.prototype.docID = function () {};
 
-DocIdSetIterator.prototype.advance;// = function (target) {};
+/**
+ * @return {DocumentID}
+ */
+
+DocIdSetIterator.prototype.nextDoc = function () {};
+
+/**
+ * @param {DocumentID} target
+ * @return {DocumentID}
+ */
+
+DocIdSetIterator.prototype.advance = function (target) {};
 
 
 exports.DocIdSetIterator = DocIdSetIterator;
