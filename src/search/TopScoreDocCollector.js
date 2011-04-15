@@ -1,13 +1,22 @@
-var TopDocsCollector = require("./TopDocsCollector").TopDocsCollector,
-	HitQueue = require("./HitQueue").HitQueue,
-	TopScoreDocCollector,
-	InOrderTopScoreDocCollector,
-	OutOfOrderTopScoreDocCollector;
+//var TopDocsCollector = require("./TopDocsCollector").TopDocsCollector,
+//	HitQueue = require("./HitQueue").HitQueue,
 
-TopScoreDocCollector = function (numHits) {
+/**
+ * @constructor
+ * @extends {TopDocsCollector}
+ * @param {number} numHits
+ */
+
+var TopScoreDocCollector = function (numHits) {
 	TopDocsCollector.call(this, new HitQueue(numHits, true));
-	this.pqTop = this.pq.top();
+	this.pqTop = /** @type {ScoreDoc} */ (this.pq.top());
 };
+
+/**
+ * @param {number} numHits
+ * @param {boolean} docsScoredInOrder
+ * @return {TopScoreDocCollector}
+ */
 
 TopScoreDocCollector.create = function (numHits, docsScoredInOrder) {
 	if (numHits <= 0) {
@@ -23,17 +32,35 @@ TopScoreDocCollector.create = function (numHits, docsScoredInOrder) {
 
 TopScoreDocCollector.prototype = Object.create(TopDocsCollector.prototype);
 
+/**
+ * @type {ScoreDoc}
+ */
+
 TopScoreDocCollector.prototype.pqTop;
 
-TopScoreDocCollector.prototype.docBase = "";
+/**
+ * @type {DocumentID|null}
+ */
+
+TopScoreDocCollector.prototype.docBase;
+
+/**
+ * @type {Scorer}
+ */
 
 TopScoreDocCollector.prototype.scorer;
+
+/**
+ * @param {Array.<ScoreDoc>} results
+ * @param {number} start
+ * @return {TopDocs}
+ */
 
 TopScoreDocCollector.prototype.newTopDocs = function (results, start) {
 	var maxScore, i;
 	
 	if (!results) {
-		return this.EMPTY_TOPDOCS;
+		return TopDocsCollector.EMPTY_TOPDOCS;
 	}
 	
 	maxScore = Number.NaN;
@@ -49,16 +76,32 @@ TopScoreDocCollector.prototype.newTopDocs = function (results, start) {
 	return new TopDocs(this.totalHits, results, maxScore);
 };
 
+/**
+ * @param {Index} reader
+ * @param {DocumentID|null} base
+ */
+
 TopScoreDocCollector.prototype.setNextReader = function (reader, base) {
 	this.docBase = base;
 };
 
 
-InOrderTopScoreDocCollector = function (numHits) {
-	TopScoreDocCollector.call(numHits);
+/**
+ * @private
+ * @constructor
+ * @extends {TopScoreDocCollector}
+ * @param {number} numHits
+ */
+
+var InOrderTopScoreDocCollector = function (numHits) {
+	TopScoreDocCollector.call(this, numHits);
 };
 
 InOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
+
+/**
+ * @param {DocumentID} doc
+ */
 
 InOrderTopScoreDocCollector.prototype.collect = function (doc) {
 	var score = this.scorer.score();
@@ -68,27 +111,42 @@ InOrderTopScoreDocCollector.prototype.collect = function (doc) {
 		return;
 	}
 	
-	this.pqTop.doc = this.docBase + doc;
+	this.pqTop.doc = (this.docBase ? this.docBase + doc : doc);
 	this.pqTop.score = score;
-	this.pqTop = this.pq.updateTop();
+	this.pqTop = /** @type {ScoreDoc} */ (this.pq.updateTop());
 };
+
+/**
+ * @return {boolean}
+ */
 
 InOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function () {
 	return false;
 };
 
 
-OutOfOrderTopScoreDocCollector = function (numHits) {
-	TopScoreDocCollector.call(numHits);
+/**
+ * @private
+ * @constructor
+ * @extends {TopScoreDocCollector}
+ * @param {number} numHits
+ */
+
+var OutOfOrderTopScoreDocCollector = function (numHits) {
+	TopScoreDocCollector.call(this, numHits);
 };
 
-OutOfOrderTopScoreDocCollector = Object.create(TopScoreDocCollector);
+OutOfOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
+
+/**
+ * @param {DocumentID} doc
+ */
 
 OutOfOrderTopScoreDocCollector.prototype.collect = function (doc) {
 	var score = this.scorer.score();
 	
 	this.totalHits++;
-	doc = this.docBase + doc;
+	doc = (this.docBase ? this.docBase + doc : doc);
 	
 	if (score < this.pqTop.score || (score === this.pqTop.score && doc > this.pqTop.doc)) {
 		return;
@@ -96,8 +154,12 @@ OutOfOrderTopScoreDocCollector.prototype.collect = function (doc) {
 	
 	this.pqTop.doc = doc;
 	this.pqTop.score = score;
-	this.pqTop = this.pq.updateTop();
+	this.pqTop = /** @type {ScoreDoc} */ (this.pq.updateTop());
 };
+
+/**
+ * @return {boolean}
+ */
 
 OutOfOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function () {
 	return true;

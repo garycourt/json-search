@@ -34,3 +34,9 @@ if (typeof Object.create !== "function") {
 		return new F();
 	};
 }
+
+/**
+ * @typedef {(Error|string|null|undefined)}
+ */
+
+var PossibleError;

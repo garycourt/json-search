@@ -18,7 +18,7 @@ Collector.prototype.collect = function (doc) {};
 
 /**
  * @param {Index} reader
- * @param {DocumentID} docBase
+ * @param {DocumentID|null} docBase
  */
 
 Collector.prototype.setNextReader = function (reader, docBase) {};

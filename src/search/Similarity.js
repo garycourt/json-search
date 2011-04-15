@@ -71,5 +71,22 @@ Similarity.prototype.coord = function (overlap, maxOverlap) {};
 
 Similarity.prototype.scorePayload = function (docId, fieldName, start, end, payload, offset, length) {};
 
+/**
+ * @param {Term} term
+ * @param {SearchResult} search
+ * @param {number} [docFreq]
+ * @return {Explanation}
+ */
+
+Similarity.prototype.explainTermIDF = function (term, search, docFreq) {};
+
+/**
+ * @param {Array.<Term>} terms
+ * @param {SearchResult} search
+ * @return {Explanation}
+ */
+
+Similarity.prototype.explainPhraseIDF = function (terms, search) {};
+
 
 exports.Similarity = Similarity;

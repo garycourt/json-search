@@ -33,7 +33,7 @@ TopDocsCollector.prototype.collect = function (doc) {
 
 /**
  * @param {Index} reader
- * @param {DocumentID} docBase
+ * @param {DocumentID|null} docBase
  */
 
 TopDocsCollector.prototype.setNextReader = function (reader, docBase) {

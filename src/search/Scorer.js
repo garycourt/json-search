@@ -41,12 +41,12 @@ Scorer.prototype.weight;
 
 /**
  * @param {Collector} collector
- * @param {number} [max]
+ * @param {DocumentID} [max]
  * @param {DocumentID} [firstDocID]
  * @return {boolean}
  */
 
-Scorer.prototype.score = function (collector, max, firstDocID) {
+Scorer.prototype.collect = function (collector, max, firstDocID) {
 	var doc = firstDocID;
 	collector.scorer = this;
 	
@@ -65,6 +65,14 @@ Scorer.prototype.score = function (collector, max, firstDocID) {
 	
 	return doc !== DocIdSetIterator.NO_MORE_DOCS;
 }
+
+/**
+ * @return {number}
+ */
+
+Scorer.prototype.score = function () {
+	throw new Error("Not Implemented");
+};
 
 /**
  * @return {number}

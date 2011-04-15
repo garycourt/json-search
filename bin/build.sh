@@ -3,7 +3,7 @@
 ROOT_DIR="../"
 SRC_DIR=${ROOT_DIR}"src/"
 DIST_DIR=${ROOT_DIR}"dist/"
-ALL_LIST=( ${SRC_DIR}"util/common.js" ${SRC_DIR}"document/Document.js" ${SRC_DIR}"search/ScoreDoc.js" ${SRC_DIR}"search/TopDocs.js" ${SRC_DIR}"search/Collector.js" ${SRC_DIR}"search/TopDocsCollector.js" ${SRC_DIR}"search/DocIdSetIterator.js" ${SRC_DIR}"search/Scorer.js" ${SRC_DIR}"search/Weight.js" ${SRC_DIR}"util/PriorityQueue.js" ${SRC_DIR}"search/HitQueue.js" ${SRC_DIR}"index/Index.js" ${SRC_DIR}"search/Query.js" ${SRC_DIR}"search/IndexSearcher.js" ${SRC_DIR}"search/Similarity.js" ${SRC_DIR}"search/DefaultSimilarity.js" ${SRC_DIR}"index/FieldInvertState.js" )
+ALL_LIST=( ${SRC_DIR}"util/common.js" ${SRC_DIR}"document/Document.js" ${SRC_DIR}"search/ScoreDoc.js" ${SRC_DIR}"search/TopDocs.js" ${SRC_DIR}"search/Collector.js" ${SRC_DIR}"search/TopDocsCollector.js" ${SRC_DIR}"search/DocIdSetIterator.js" ${SRC_DIR}"search/Scorer.js" ${SRC_DIR}"search/Weight.js" ${SRC_DIR}"util/PriorityQueue.js" ${SRC_DIR}"search/HitQueue.js" ${SRC_DIR}"index/Index.js" ${SRC_DIR}"search/Query.js" ${SRC_DIR}"search/IndexSearcher.js" ${SRC_DIR}"search/Similarity.js" ${SRC_DIR}"search/DefaultSimilarity.js" ${SRC_DIR}"index/FieldInvertState.js" ${SRC_DIR}"search/TopScoreDocCollector.js" ${SRC_DIR}"index/Term.js" ${SRC_DIR}"search/Explanation.js" ${SRC_DIR}"search/SearchResult.js" )
 ALL_FILE=${DIST_DIR}"all.js"
 EXTERNS_FILE=${SRC_DIR}"externs.js"
 

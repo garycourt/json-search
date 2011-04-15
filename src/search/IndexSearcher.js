@@ -35,7 +35,7 @@ IndexSearcher.prototype.createWeight = function (query) {
 /**
  * @param {Query|Weight} query
  * @param {number} nDocs
- * @param {function((Error|string|null|undefined), TopDocs)} callback
+ * @param {function(PossibleError, TopDocs=)} callback
  */
 
 IndexSearcher.prototype.search = function (query, nDocs, callback) {
@@ -51,7 +51,29 @@ IndexSearcher.prototype.search = function (query, nDocs, callback) {
 	
 	nDocs = Math.min(nDocs, Number.MAX_VALUE);
 	collector = TopScoreDocCollector.create(nDocs, !weight.scoresDocsOutOfOrder());
-	//...
+	
+	this.collectSearch(weight, collector, function (err) {
+		if (!err) {
+			callback(null, collector.topDocs());
+		} else {
+			callback(err);
+		}
+	});
+};
+
+/**
+ * @param {Weight} weight
+ * @param {Collector} collector
+ * @param {function(PossibleError)} callback
+ */
+
+IndexSearcher.prototype.collectSearch = function (weight, collector, callback) {
+	var scorer;
+	collector.setNextReader(this.reader, null);
+	scorer = weight.scorer(this.reader, !collector.acceptsDocsOutOfOrder(), true);
+	if (scorer !== null) {
+		scorer.collect(collector);
+	}
 };
 
 /**
@@ -62,7 +84,7 @@ IndexSearcher.prototype.search = function (query, nDocs, callback) {
 IndexSearcher.prototype.rewrite = function (original) {
 	var query = original,
 		rewrittenQuery;
-	for (rewrittenQuery = query.rewrite(this.reader); rewrittenQuery != query; rewrittenQuery = query.rewrite(this.reader)) {
+	for (rewrittenQuery = query.rewrite(this.reader); rewrittenQuery !== query; rewrittenQuery = query.rewrite(this.reader)) {
 		query = rewrittenQuery;
 	}
 	return query;

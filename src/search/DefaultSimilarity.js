@@ -92,5 +92,45 @@ DefaultSimilarity.prototype.scorePayload = function (docId, fieldName, start, en
 	return 1;
 };
 
+/**
+ * @param {Term} term
+ * @param {SearchResult} search
+ * @param {number} [docFreq]
+ * @return {Explanation}
+ */
+
+DefaultSimilarity.prototype.explainTermIDF = function (term, search, docFreq) {
+	var max = search.numDocs || 0;
+	if (docFreq === undefined) {
+		docFreq = search.termDocFreq[term] || 0;
+	}
+	return new Explanation(this.idf(docFreq, max), "idf(docFreq=" + docFreq + ", maxDocs=" + max + ")");
+};
+
+/**
+ * @param {Array.<Term>} terms
+ * @param {SearchResult} search
+ * @return {Explanation}
+ */
+
+DefaultSimilarity.prototype.explainPhraseIDF = function (terms, search) {
+	var max = search.numDocs || 0,
+		idf = 0.0,
+		exp = [],
+		i,
+		df;
+	
+	for (i = 0; i < terms.length; i++) {
+		df = search.termDocFreq[terms[i]] || 0;
+		idf += this.idf(df, max);
+		exp.push(" ");
+		exp.push(terms[i].text);
+		exp.push("=");
+		exp.push(df);
+	}
+	
+	return new Explanation(idf, exp.join(""));
+};
+
 
 exports.DefaultSimilarity = DefaultSimilarity;

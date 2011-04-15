@@ -10,7 +10,8 @@ if(typeof Object.create !== "function") {
     return new F
   }
 }
-;var DocumentID;
+var PossibleError;
+var DocumentID;
 var ScoreDoc = function(a, b) {
   this.doc = a;
   this.score = b
@@ -91,7 +92,7 @@ Scorer.prototype.nextDoc = function() {
 Scorer.prototype.advance = function() {
   throw Error("Not Implemented");
 };
-Scorer.prototype.score = function(a, b, c) {
+Scorer.prototype.collect = function(a, b, c) {
   a.scorer = this;
   if(b !== void 0) {
     for(;c < b;) {
@@ -103,6 +104,9 @@ Scorer.prototype.score = function(a, b, c) {
     }
   }
   return c !== DocIdSetIterator.NO_MORE_DOCS
+};
+Scorer.prototype.score = function() {
+  throw Error("Not Implemented");
 };
 Scorer.prototype.freq = function() {
   throw Error("Scorer does not implement freq()");
@@ -205,6 +209,12 @@ HitQueue.prototype.lessThan = function(a, b) {
 exports.HitQueue = HitQueue;
 var Index = function() {
 };
+Index.prototype.numDocs = function() {
+  throw Error("Not Implemented");
+};
+Index.prototype.docFreq = function() {
+  throw Error("Not Implemented");
+};
 var Query = function() {
 };
 Query.prototype.boost = 1;
@@ -233,23 +243,30 @@ IndexSearcher.prototype.similarity = new DefaultSimilarity;
 IndexSearcher.prototype.createWeight = function(a) {
   return a.weight(this)
 };
-IndexSearcher.prototype.search = function(a, b) {
-  var c;
+IndexSearcher.prototype.search = function(a, b, c) {
+  var d;
   if(a instanceof Query) {
-    c = this.createWeight(a)
+    a = this.createWeight(a)
   }else {
-    if(a instanceof Weight) {
-      c = a
-    }else {
+    if(!(a instanceof Weight)) {
       throw Error("Search query must be an instance of the Query class.");
     }
   }
   b = Math.min(b, Number.MAX_VALUE);
-  TopScoreDocCollector.create(b, !c.scoresDocsOutOfOrder())
+  d = TopScoreDocCollector.create(b, !a.scoresDocsOutOfOrder());
+  this.collectSearch(a, d, function(a) {
+    a ? c(a) : c(null, d.topDocs())
+  })
+};
+IndexSearcher.prototype.collectSearch = function(a, b) {
+  var c;
+  b.setNextReader(this.reader, null);
+  c = a.scorer(this.reader, !b.acceptsDocsOutOfOrder(), !0);
+  c !== null && c.collect(b)
 };
 IndexSearcher.prototype.rewrite = function(a) {
   var b;
-  for(b = a.rewrite(this.reader);b != a;b = a.rewrite(this.reader)) {
+  for(b = a.rewrite(this.reader);b !== a;b = a.rewrite(this.reader)) {
     a = b
   }
   return a
@@ -271,6 +288,10 @@ Similarity.prototype.idf = function() {
 Similarity.prototype.coord = function() {
 };
 Similarity.prototype.scorePayload = function() {
+};
+Similarity.prototype.explainTermIDF = function() {
+};
+Similarity.prototype.explainPhraseIDF = function() {
 };
 exports.Similarity = Similarity;
 var DefaultSimilarity = function() {
@@ -297,6 +318,18 @@ DefaultSimilarity.prototype.coord = function(a, b) {
 DefaultSimilarity.prototype.scorePayload = function() {
   return 1
 };
+DefaultSimilarity.prototype.explainTermIDF = function(a, b, c) {
+  var d = b.numDocs || 0;
+  c === void 0 && (c = b.termDocFreq[a] || 0);
+  return new Explanation(this.idf(c, d), "idf(docFreq=" + c + ", maxDocs=" + d + ")")
+};
+DefaultSimilarity.prototype.explainPhraseIDF = function(a, b) {
+  var c = b.numDocs || 0, d = 0, e = [], f, g;
+  for(f = 0;f < a.length;f++) {
+    g = b.termDocFreq[a[f]] || 0, d += this.idf(g, c), e.push(" "), e.push(a[f].text), e.push("="), e.push(g)
+  }
+  return new Explanation(d, e.join(""))
+};
 exports.DefaultSimilarity = DefaultSimilarity;
 var FieldInvertState = function(a, b, c, d, e) {
   this.position = a || 0;
@@ -317,4 +350,105 @@ FieldInvertState.prototype.reset = function(a) {
   this.boost = a
 };
 exports.FieldInvertState = FieldInvertState;
+var TopScoreDocCollector = function(a) {
+  TopDocsCollector.call(this, new HitQueue(a, !0));
+  this.pqTop = this.pq.top()
+};
+TopScoreDocCollector.create = function(a, b) {
+  if(a <= 0) {
+    throw Error("numHits must be > 0; please use TotalHitCountCollector if you just need the total hit count");
+  }
+  return b ? new InOrderTopScoreDocCollector(a) : new OutOfOrderTopScoreDocCollector(a)
+};
+TopScoreDocCollector.prototype = Object.create(TopDocsCollector.prototype);
+TopScoreDocCollector.prototype.newTopDocs = function(a, b) {
+  var c;
+  if(!a) {
+    return TopDocsCollector.EMPTY_TOPDOCS
+  }
+  if(b === 0) {
+    c = a[0].score
+  }else {
+    for(c = this.pq.size();c > 1;c--) {
+      this.pq.pop()
+    }
+    c = this.pq.pop().score
+  }
+  return new TopDocs(this.totalHits, a, c)
+};
+TopScoreDocCollector.prototype.setNextReader = function(a, b) {
+  this.docBase = b
+};
+var InOrderTopScoreDocCollector = function(a) {
+  TopScoreDocCollector.call(this, a)
+};
+InOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
+InOrderTopScoreDocCollector.prototype.collect = function(a) {
+  var b = this.scorer.score();
+  this.totalHits++;
+  if(!(b <= this.pqTop.score)) {
+    this.pqTop.doc = this.docBase ? this.docBase + a : a, this.pqTop.score = b, this.pqTop = this.pq.updateTop()
+  }
+};
+InOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function() {
+  return!1
+};
+var OutOfOrderTopScoreDocCollector = function(a) {
+  TopScoreDocCollector.call(this, a)
+};
+OutOfOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
+OutOfOrderTopScoreDocCollector.prototype.collect = function(a) {
+  var b = this.scorer.score();
+  this.totalHits++;
+  a = this.docBase ? this.docBase + a : a;
+  if(!(b < this.pqTop.score || b === this.pqTop.score && a > this.pqTop.doc)) {
+    this.pqTop.doc = a, this.pqTop.score = b, this.pqTop = this.pq.updateTop()
+  }
+};
+OutOfOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function() {
+  return!0
+};
+exports.TopScoreDocCollector = TopScoreDocCollector;
+exports.InOrderTopScoreDocCollector = InOrderTopScoreDocCollector;
+exports.OutOfOrderTopScoreDocCollector = OutOfOrderTopScoreDocCollector;
+var Term = function(a, b) {
+  this.field = a || "";
+  this.text = b || ""
+};
+Term.prototype.createTerm = function(a) {
+  return new Term(this.field, a)
+};
+Term.prototype.equals = function(a) {
+  return this === a || typeof a === "object" && this.field === a.field && this.text === a.text
+};
+exports.Term = Term;
+var Explanation = function(a, b) {
+  this.value = a;
+  this.description = b;
+  this.details = []
+};
+Explanation.prototype.isMatch = function() {
+  return this.value > 0
+};
+Explanation.prototype.getSummary = function() {
+  return this.value + " = " + this.description
+};
+Explanation.prototype.toString = function(a) {
+  var b = [], c, a = a || 0;
+  for(c = 0;c < a;c++) {
+    b.push("  ")
+  }
+  b.push(this.getSummary());
+  b.push("\n");
+  if(this.details) {
+    for(c = 0;c < this.details.length;c++) {
+      b.push(this.details[c].toString(a + 1))
+    }
+  }
+  return b.join("")
+};
+exports.Explanation = Explanation;
+var SearchResult = function() {
+};
+exports.SearchResult = SearchResult;
 
