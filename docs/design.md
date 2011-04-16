@@ -81,13 +81,29 @@ CouchDB should have the following maps/reduces:
 *	Query(Term)
 	
 	Keeps track of Queries/Terms, Boost, and other attributes
-	.createWeight() -> Weight
-
-*	Weight(Query)
-	
-	Used by Searcher
 	.createScorer() -> Scorer
 
-*	Scorer
+*	Scorer(Query)
 	
-	Used by Index, ranks documents
+	Used by Searcher/Index, applys ranks to documents
+	
+## Searching Process
+
+Searcher.prototype.search = function (query, ntop, callback) {
+	var collector = new TopCollector(ntop, callback);
+	var scorer = query.getScorer(collector);
+	scorer.getDocuments(this.index);
+};
+
+Scorer.prototype.getDocuments = function (index, queue) {
+	index.getDocumentsByTerm(this.term, this.field, this);
+};
+
+Scorer.prototype.onDocument = function (doc) {
+	this.onScoredDocument(new ScoredDocument(doc));
+};
+
+Scorer.prototype.onScoredDocument = function (scoredDoc) {
+	scoredDoc.score = doMathHere;
+	this.queue.push(scoredDoc);
+};
