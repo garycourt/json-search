@@ -64,7 +64,7 @@ CouchDB should have the following maps/reduces:
 		//total_rows is docFreq
 		{
 			_id : "id0",
-			docBoost : 0.0,         //these attributes take up extra space
+			docBoost : 0.0,         //these optional attributes take up extra space
 			docFieldBoost : 0.0,    //but results in much faster search
 			docFieldTermsCount : 0, //as we don't have to look up each document
 			termFreq : 0,
@@ -78,32 +78,50 @@ CouchDB should have the following maps/reduces:
 
 ## Code Structure
 
-*	Query(Term)
+*	Interface: Query
 	
 	Keeps track of Queries/Terms, Boost, and other attributes
 	.createScorer() -> Scorer
 
-*	Scorer(Query)
+*	Interface: InputStream
+	.start(outputStream)
+	.push(data)
+	.end(outputStream, [error])
+
+*	Interface: OutputStream
+	.addOutput(inputStream)
+	.removeOutput(inputStream)
+	.pause()
+	.resume()
+	.destroy()
+
+*	Pipe implements InputStream, OutputStream
+	Data written to the InputStream API is pushed to the OutputStream API
+
+*	QueuePipe extends Pipe
+	Pausing this pipe will queue up the data
+
+*	Scorer extends Pipe
 	
-	Used by Searcher/Index, applys ranks to documents
+	Used by Searcher/Index, filters and applys ranks to documents
+
+*	Collector implements InputStream
+
+*	TopCollector extends Collector
 	
 ## Searching Process
 
 Searcher.prototype.search = function (query, ntop, callback) {
 	var collector = new TopCollector(ntop, callback);
-	var scorer = query.getScorer(collector);
+	var scorer = query.createScorer(collector);
 	scorer.getDocuments(this.index);
 };
 
-Scorer.prototype.getDocuments = function (index, queue) {
+Scorer.prototype.getDocuments = function (index) {
 	index.getDocumentsByTerm(this.term, this.field, this);
 };
 
-Scorer.prototype.onDocument = function (doc) {
-	this.onScoredDocument(new ScoredDocument(doc));
-};
-
-Scorer.prototype.onScoredDocument = function (scoredDoc) {
+Scorer.prototype.push = function (doc) {
 	scoredDoc.score = doMathHere;
-	this.queue.push(scoredDoc);
+	this.output.push(doc);
 };
