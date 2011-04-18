@@ -35,10 +35,10 @@ if(typeof Array.orderedInsert !== "function") {
     }else {
       d = 0;
       f = a.length - 1;
-      for(e = Math.round(f / 2);f - d > 1;) {
+      for(e = Math.floor(f / 2);f - d > 0;) {
         c(a[e], b) <= 0 ? d = e + 1 : f = e - 1, e = Math.round(d + (f - d) / 2)
       }
-      f - d === 1 ? a.splice(f, 0, b) : c(a[e], b) <= 0 ? a.splice(e + 1, 0, b) : a.splice(e, 0, b)
+      c(a[e], b) <= 0 ? a.splice(e + 1, 0, b) : a.splice(e, 0, b)
     }
   }
 }
