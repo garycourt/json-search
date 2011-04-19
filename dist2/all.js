@@ -218,8 +218,22 @@ TermScorer.prototype.push = function(a) {
   c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._query.boost * b.norm(a);
   Pipe.prototype.push.call(this, c)
 };
+function Document(a, b, c) {
+  this.id = a || null;
+  this.boost = c;
+  b && this.parseJSON(b)
+}
+Document.prototype.boost = 1;
+Document.prototype.parseJSON = function() {
+};
+Document.prototype.addField = function() {
+};
 function MemoryIndex() {
 }
+MemoryIndex.prototype.addDocument = function() {
+};
+MemoryIndex.prototype.getDocument = function() {
+};
 MemoryIndex.prototype.getTermDocuments = function(a, b, c) {
   c.start(null);
   c.end(null)

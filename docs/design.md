@@ -68,7 +68,8 @@ CouchDB should have the following maps/reduces:
 			docFieldBoost : 0.0,    //but results in much faster search
 			docFieldTermsCount : 0, //as we don't have to look up each document
 			termFreq : 0,
-			termPos : [0,...]
+			termPos : [0,...],
+			termOff : [0,...]
 		}
 
 ## CouchDB calls
