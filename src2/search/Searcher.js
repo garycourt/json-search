@@ -15,6 +15,12 @@ function Searcher(index) {
 Searcher.prototype._index;
 
 /**
+ * @type {Similarity}
+ */
+
+Searcher.prototype.similarity = new DefaultSimilarity();
+
+/**
  * @param {Query} query
  * @param {number} max
  * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
@@ -41,3 +47,5 @@ function testSearch() {
 		}
 	});
 }
+
+testSearch();

@@ -1,5 +1,0 @@
-/**
- * @constructor
- */
-
-function TermDocument() {};

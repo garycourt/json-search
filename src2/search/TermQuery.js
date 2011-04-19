@@ -31,12 +31,13 @@ TermQuery.prototype.field = null;
 TermQuery.prototype.boost = 1.0;
 
 /**
+ * @param {Searcher} searcher
  * @param {InputStream} output
  * @return {Scorer}
  */
 
-TermQuery.prototype.createScorer = function (output) {
-	return new TermScorer(this, output);
+TermQuery.prototype.createScorer = function (searcher, output) {
+	return new TermScorer(this, searcher, output);
 };
 
 /**
@@ -54,12 +55,14 @@ TermQuery.prototype.extractTerms = function () {
  * @extends Pipe
  * @implements Scorer
  * @param {TermQuery} query
+ * @param {Searcher} searcher
  * @param {InputStream} output
  */
 
-function TermScorer(query, output) {
-	Pipe.call(this, output);
+function TermScorer(query, searcher, output) {
 	this._query = query;
+	this._searcher = searcher;
+	Pipe.call(this, output);
 }
 
 TermScorer.prototype = Object.create(Pipe.prototype);
@@ -72,6 +75,13 @@ TermScorer.prototype = Object.create(Pipe.prototype);
 TermScorer.prototype._query;
 
 /**
+ * @protected
+ * @type {Searcher}
+ */
+
+TermScorer.prototype._searcher;
+
+/**
  * @param {Index} index
  */
 
@@ -80,16 +90,22 @@ TermScorer.prototype.scoreDocuments = function (index) {
 };
 
 /**
- * @param {TermDocument} doc
+ * @param {TermDocument} termDoc
  * @override
  */
 
-TermScorer.prototype.push = function (doc) {
-	//compute score (TODO: get handle to Similarity)
-	doc.score = similarity.tf(doc) * 
-		Math.pow(similarity.idf(doc), 2) * 
-		this._query.boost * 
-		similarity.norm(doc);
+TermScorer.prototype.push = function (termDoc) {
+	var similarity = this._searcher.similarity,
+		doc = new DocumentTerms(termDoc.documentID, [termDoc]);
 	
-	Pipe.prototype.push.apply(this, arguments);
+	//compute sumOfSquaredWeights
+	doc.sumOfSquaredWeights = Math.pow((similarity.idf(termDoc) * this._query.boost), 2);
+	
+	//compute score
+	doc.score = similarity.tf(termDoc) * 
+		Math.pow(similarity.idf(termDoc), 2) * 
+		this._query.boost * 
+		similarity.norm(termDoc);
+	
+	Pipe.prototype.push.call(this, doc);
 };

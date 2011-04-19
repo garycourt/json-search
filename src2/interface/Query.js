@@ -11,11 +11,12 @@ function Query() {};
 Query.prototype.boost;
 
 /**
+ * @param {Searcher} searcher
  * @param {InputStream} output
  * @return {Scorer}
  */
 
-Query.prototype.createScorer = function (output) {};
+Query.prototype.createScorer = function (searcher, output) {};
 
 /**
  * @return {Array.<string>}

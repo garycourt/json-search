@@ -121,9 +121,7 @@ Pipe.prototype.close = function() {
     this._open = !1
   }
 };
-function TermDocument() {
-}
-;function DocumentTerms(a, b) {
+function DocumentTerms(a, b) {
   this.id = a;
   this.terms = b || []
 }
@@ -157,9 +155,31 @@ TopDocumentsCollector.prototype.push = function(a) {
     this.collection.length >= this.max && this.collection.pop(), Array.orderedInsert(this.collection, a, TopDocumentsCollector.compareScores), this.lowestScore = this.collection[this.collection.length - 1].score
   }
 };
+var DefaultSimilarity = function() {
+};
+DefaultSimilarity.prototype.norm = function(a) {
+  return a.documentBoost * a.fieldBoost * (1 / Math.sqrt(a.totalFieldTerms))
+};
+DefaultSimilarity.prototype.queryNorm = function(a) {
+  return 1 / Math.sqrt(a.sumOfSquaredWeights)
+};
+DefaultSimilarity.prototype.tf = function(a) {
+  return Math.sqrt(a.termFrequency)
+};
+DefaultSimilarity.prototype.sloppyFreq = function(a) {
+  return 1 / (a + 1)
+};
+DefaultSimilarity.prototype.idf = function(a) {
+  return Math.log(a.totalDocuments / (a.documentFrequency + 1)) + 1
+};
+DefaultSimilarity.prototype.coord = function(a, b) {
+  return a / b
+};
+exports.DefaultSimilarity = DefaultSimilarity;
 function Searcher(a) {
   this._index = a
 }
+Searcher.prototype.similarity = new DefaultSimilarity;
 Searcher.prototype.search = function(a, b, c) {
   b = new TopDocumentsCollector(b, c);
   (new NormalizedQuery(a)).createScorer(b).scoreDocuments(this._index)
@@ -169,4 +189,39 @@ function testSearch() {
     a ? console.error(a) : console.log(b)
   })
 }
-;
+testSearch();
+function TermQuery(a, b, c) {
+  this.term = a;
+  this.field = b || null;
+  this.boost = c || 1
+}
+TermQuery.prototype.field = null;
+TermQuery.prototype.boost = 1;
+TermQuery.prototype.createScorer = function(a, b) {
+  return new TermScorer(this, a, b)
+};
+TermQuery.prototype.extractTerms = function() {
+  return[this.term]
+};
+function TermScorer(a, b, c) {
+  this._query = a;
+  this._searcher = b;
+  Pipe.call(this, c)
+}
+TermScorer.prototype = Object.create(Pipe.prototype);
+TermScorer.prototype.scoreDocuments = function(a) {
+  a.getTermDocuments(this._query.term, this._query.field, this)
+};
+TermScorer.prototype.push = function(a) {
+  var b = this._searcher.similarity, c = new DocumentTerms(a.documentID, [a]);
+  c.sumOfSquaredWeights = Math.pow(b.idf(a) * this._query.boost, 2);
+  c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._query.boost * b.norm(a);
+  Pipe.prototype.push.call(this, c)
+};
+function MemoryIndex() {
+}
+MemoryIndex.prototype.getTermDocuments = function(a, b, c) {
+  c.start(null);
+  c.end(null)
+};
+
