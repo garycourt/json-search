@@ -6,18 +6,37 @@
 function MemoryIndex() {};
 
 /**
- * @param {Document} doc
+ * @protected
+ * @type {TermIndexer}
+ */
+
+MemoryIndex.prototype._termIndexer = new DefaultTermIndexer();
+
+/**
+ * @param {Object} doc
  * @param {function(PossibleError)} [callback]
  */
 
-MemoryIndex.prototype.addDocument = function (doc, callback) {};
+MemoryIndex.prototype.addDocument = function (doc, callback) {
+	//TODO
+};
 
 /**
  * @param {DocumentID} id
- * @param {function(PossibleError, (Document|undefined))} callback
+ * @param {function(PossibleError, (Object|undefined))} callback
  */
 
-MemoryIndex.prototype.getDocument = function (id, callback) {};
+MemoryIndex.prototype.getDocument = function (id, callback) {
+	//TODO
+};
+
+/**
+ * @param {TermIndexer} indexer
+ */
+
+MemoryIndex.prototype.setTermIndexer = function (indexer) {
+	this._termIndexer = indexer;
+};
 
 /**
  * @param {string} term
@@ -25,8 +44,11 @@ MemoryIndex.prototype.getDocument = function (id, callback) {};
  * @param {InputStream} output
  */
 
-MemoryIndex.prototype.getTermDocuments = function (term, field, output) {
+MemoryIndex.prototype.getTermVectors = function (term, field, output) {
 	//TODO
 	output.start(null);
 	output.end(null);
 };
+
+
+exports.MemoryIndex = MemoryIndex;

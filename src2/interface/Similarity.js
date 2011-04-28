@@ -5,11 +5,11 @@
 function Similarity() {};
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-Similarity.prototype.norm = function (termDoc) {};
+Similarity.prototype.norm = function (termVec) {};
 
 /**
  * @param {DocumentTerms} doc
@@ -19,11 +19,11 @@ Similarity.prototype.norm = function (termDoc) {};
 Similarity.prototype.queryNorm = function (doc) {};
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-Similarity.prototype.tf = function (termDoc) {};
+Similarity.prototype.tf = function (termVec) {};
 
 /**
  * @param {number} distance
@@ -33,11 +33,11 @@ Similarity.prototype.tf = function (termDoc) {};
 Similarity.prototype.sloppyFreq = function (distance) {};
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-Similarity.prototype.idf = function (termDoc) {};
+Similarity.prototype.idf = function (termVec) {};
 
 /**
  * @param {number} overlap

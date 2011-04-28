@@ -6,12 +6,12 @@
 var DefaultSimilarity = function () {};
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-DefaultSimilarity.prototype.norm = function (termDoc) {
-	return termDoc.documentBoost * termDoc.fieldBoost * (1.0 / Math.sqrt(termDoc.totalFieldTerms));
+DefaultSimilarity.prototype.norm = function (termVec) {
+	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTerms));
 };
 
 /**
@@ -24,12 +24,12 @@ DefaultSimilarity.prototype.queryNorm = function (doc) {
 };
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-DefaultSimilarity.prototype.tf = function (termDoc) {
-	return Math.sqrt(termDoc.termFrequency);
+DefaultSimilarity.prototype.tf = function (termVec) {
+	return Math.sqrt(termVec.termFrequency);
 };
 
 /**
@@ -42,12 +42,12 @@ DefaultSimilarity.prototype.sloppyFreq = function (distance) {
 };
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @return {number}
  */
 
-DefaultSimilarity.prototype.idf = function (termDoc) {
-	return Math.log(termDoc.totalDocuments / (termDoc.documentFrequency + 1)) + 1.0;
+DefaultSimilarity.prototype.idf = function (termVec) {
+	return Math.log(termVec.totalDocuments / (termVec.documentFrequency + 1)) + 1.0;
 };
 
 /**

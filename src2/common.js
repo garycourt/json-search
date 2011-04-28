@@ -1,3 +1,15 @@
+/** @type {Object} */ var O = {};
+/** @constructor */   function F() {};
+
+/**
+ * @param {*} o
+ * @return {string}
+ */
+
+function typeOf(o) {
+	return o === undefined ? 'undefined' : (o === null ? 'null' : Object.prototype.toString.call(/** @type {Object} */ (o)).split(' ').pop().split(']').shift().toLowerCase());
+};
+
 if (typeof exports === "undefined") {
 	/**
 	 * @type {Object}
@@ -18,13 +30,6 @@ if (typeof require !== "function") {
 }
 
 if (typeof Object.create !== "function") {
-	/**
-	 * @private
-	 * @constructor
-	 */
-	
-	function F() {};
-	
 	/**
 	 * @param {Object} o
 	 * @return {Object}

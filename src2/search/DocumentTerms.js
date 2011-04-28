@@ -1,7 +1,7 @@
 /**
  * @constructor
  * @param {DocumentID} id
- * @param {Array.<TermDocument>} [terms]
+ * @param {Array.<TermVector>} [terms]
  */
 
 function DocumentTerms(id, terms) {
@@ -16,7 +16,7 @@ function DocumentTerms(id, terms) {
 DocumentTerms.prototype.id;
 
 /**
- * @type {Array.<TermDocument>}
+ * @type {Array.<TermVector>}
  */
 
 DocumentTerms.prototype.terms = [];
@@ -32,3 +32,6 @@ DocumentTerms.prototype.sumOfSquaredWeights;
  */
 
 DocumentTerms.prototype.score;
+
+
+exports.DocumentTerms = DocumentTerms;

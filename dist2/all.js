@@ -1,10 +1,14 @@
+var O = {};
+function F() {
+}
+function typeOf(a) {
+  return a === void 0 ? "undefined" : a === null ? "null" : Object.prototype.toString.call(a).split(" ").pop().split("]").shift().toLowerCase()
+}
 typeof exports === "undefined" && (exports = {});
 typeof require !== "function" && (require = function() {
   return exports
 });
 if(typeof Object.create !== "function") {
-  var F = function() {
-  };
   Object.create = function(a) {
     F.prototype = a;
     return new F
@@ -210,7 +214,7 @@ function TermScorer(a, b, c) {
 }
 TermScorer.prototype = Object.create(Pipe.prototype);
 TermScorer.prototype.scoreDocuments = function(a) {
-  a.getTermDocuments(this._query.term, this._query.field, this)
+  a.getTermVectors(this._query.term, this._query.field, this)
 };
 TermScorer.prototype.push = function(a) {
   var b = this._searcher.similarity, c = new DocumentTerms(a.documentID, [a]);
@@ -218,23 +222,23 @@ TermScorer.prototype.push = function(a) {
   c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._query.boost * b.norm(a);
   Pipe.prototype.push.call(this, c)
 };
-function Document(a, b, c) {
-  this.id = a || null;
-  this.boost = c;
-  b && this.parseJSON(b)
+function DefaultTermIndexer() {
 }
-Document.prototype.boost = 1;
-Document.prototype.parseJSON = function() {
+DefaultTermIndexer.prototype.index = function() {
 };
-Document.prototype.addField = function() {
+DefaultTermIndexer.prototype.toSource = function() {
 };
 function MemoryIndex() {
 }
+MemoryIndex.prototype._termIndexer = new DefaultTermIndexer;
 MemoryIndex.prototype.addDocument = function() {
 };
 MemoryIndex.prototype.getDocument = function() {
 };
-MemoryIndex.prototype.getTermDocuments = function(a, b, c) {
+MemoryIndex.prototype.setTermIndexer = function(a) {
+  this._termIndexer = a
+};
+MemoryIndex.prototype.getTermVectors = function(a, b, c) {
   c.start(null);
   c.end(null)
 };

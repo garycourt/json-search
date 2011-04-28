@@ -5,7 +5,7 @@
 function Index() {};
 
 /**
- * @param {Document} doc
+ * @param {Object} doc
  * @param {function(PossibleError)} [callback]
  */
 
@@ -13,10 +13,16 @@ Index.prototype.addDocument = function (doc, callback) {};
 
 /**
  * @param {DocumentID} id
- * @param {function(PossibleError, (Document|undefined))} callback
+ * @param {function(PossibleError, (Object|undefined))} callback
  */
 
 Index.prototype.getDocument = function (id, callback) {};
+
+/**
+ * @param {TermIndexer} indexer
+ */
+
+Index.prototype.setTermIndexer = function (indexer) {};
 
 /**
  * @param {string} term
@@ -24,4 +30,4 @@ Index.prototype.getDocument = function (id, callback) {};
  * @param {InputStream} output
  */
 
-Index.prototype.getTermDocuments = function (term, field, output) {};
+Index.prototype.getTermVectors = function (term, field, output) {};

@@ -86,26 +86,29 @@ TermScorer.prototype._searcher;
  */
 
 TermScorer.prototype.scoreDocuments = function (index) {
-	index.getTermDocuments(this._query.term, this._query.field, this);
+	index.getTermVectors(this._query.term, this._query.field, this);
 };
 
 /**
- * @param {TermDocument} termDoc
+ * @param {TermVector} termVec
  * @override
  */
 
-TermScorer.prototype.push = function (termDoc) {
+TermScorer.prototype.push = function (termVec) {
 	var similarity = this._searcher.similarity,
-		doc = new DocumentTerms(termDoc.documentID, [termDoc]);
+		doc = new DocumentTerms(termVec.documentID, [termVec]);
 	
 	//compute sumOfSquaredWeights
-	doc.sumOfSquaredWeights = Math.pow((similarity.idf(termDoc) * this._query.boost), 2);
+	doc.sumOfSquaredWeights = Math.pow((similarity.idf(termVec) * this._query.boost), 2);
 	
 	//compute score
-	doc.score = similarity.tf(termDoc) * 
-		Math.pow(similarity.idf(termDoc), 2) * 
+	doc.score = similarity.tf(termVec) * 
+		Math.pow(similarity.idf(termVec), 2) * 
 		this._query.boost * 
-		similarity.norm(termDoc);
+		similarity.norm(termVec);
 	
 	Pipe.prototype.push.call(this, doc);
 };
+
+
+exports.TermQuery = TermQuery;

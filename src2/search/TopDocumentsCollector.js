@@ -55,3 +55,6 @@ TopDocumentsCollector.prototype.push = function (doc) {
 		this.lowestScore = this.collection[this.collection.length - 1].score;
 	}
 };
+
+
+exports.TopDocumentsCollector = TopDocumentsCollector;

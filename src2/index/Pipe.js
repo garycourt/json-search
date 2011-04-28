@@ -150,3 +150,6 @@ Pipe.prototype.close = function () {
 		this._open = false;
 	}
 };
+
+
+exports.Pipe = Pipe;

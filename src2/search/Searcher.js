@@ -33,6 +33,9 @@ Searcher.prototype.search = function (query, max, callback) {
 	scorer.scoreDocuments(this._index);
 };
 
+
+exports.Searcher = Searcher;
+
 /**
  * MOVE ME SOMEWHERE ELSE
  */

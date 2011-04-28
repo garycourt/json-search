@@ -56,3 +56,6 @@ Collector.prototype.end = function (input, error) {
 		this.callback(error, this.collection);
 	}
 };
+
+
+exports.Collector = Collector;
