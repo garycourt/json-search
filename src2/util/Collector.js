@@ -1,21 +1,25 @@
 /**
  * @constructor
- * @implements {InputStream}
+ * @extends {Stream}
+ * @implements {WritableStream}
  * @param {function(PossibleError, Array=)} callback
  */
 
 function Collector(callback) {
-	this._inputs = [];
+	var self = this;
+	Stream.call(this);
 	this.collection = [];
 	this.callback = callback;
+	
+	this.on('error', function (err) {
+		if (self.callback) {
+			self.callback(err);
+			self.callback = null;
+		}
+	});
 };
 
-/**
- * @protected
- * @type {Array.<OutputStream>}
- */
-
-Collector.prototype._inputs;
+Collector.prototype = Object.create(Stream.prototype);
 
 /**
  * @type {Array}
@@ -24,38 +28,52 @@ Collector.prototype._inputs;
 Collector.prototype.collection;
 
 /**
- * @type {function(PossibleError, Array=)}
+ * @type {function(PossibleError, Array=)|null}
  */
 
-Collector.prototype.callback;
+Collector.prototype.callback = null;
 
 /**
- * @param {OutputStream} input
+ * @type {boolean}
  */
 
-Collector.prototype.start = function (input) {
-	Array.add(this._inputs, input);
-};
+Collector.prototype.writable = true;
 
 /**
  * @param {?} data
+ * @return {boolean}
  */
 
-Collector.prototype.push = function (data) {
+Collector.prototype.write = function (data) {
 	this.collection.push(data);
+	return true;
 };
 
 /**
- * @param {OutputStream} input
- * @param {PossibleError} [error]
+ * @param {?} [data]
  */
 
-Collector.prototype.end = function (input, error) {
-	Array.remove(this._inputs, input);
-	if (this._inputs.length === 0) {
-		this.callback(error, this.collection);
+Collector.prototype.end = function (data) {
+	if (typeof data !== "undefined") {
+		this.write(data);
+	}
+	this.destroy();
+};
+
+/**
+ */
+
+Collector.prototype.destroy = function () {
+	if (this.callback) {
+		this.callback(null, this.collection);
+		this.callback = null;
 	}
 };
+
+/**
+ */
+
+Collector.prototype.destroySoon = Collector.prototype.destroy;
 
 
 exports.Collector = Collector;

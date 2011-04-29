@@ -41,6 +41,17 @@ if (typeof Object.create !== "function") {
 	};
 }
 
+if (typeof Array.isArray !== "function") {
+	/**
+	 * @param {Array} arr
+	 * @return {boolean}
+	 */
+	
+	Array.isArray = function (arr) {
+		return typeOf(arr) === "array";
+	};
+}
+
 if (typeof Array.add !== "function") {
 	/**
 	 * @param {Array} arr

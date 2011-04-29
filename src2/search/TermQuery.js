@@ -31,13 +31,15 @@ TermQuery.prototype.field = null;
 TermQuery.prototype.boost = 1.0;
 
 /**
- * @param {Searcher} searcher
- * @param {InputStream} output
- * @return {Scorer}
+ * @param {Index} index
+ * @param {Similarity} similarity
+ * @return {ReadableStream}
  */
 
-TermQuery.prototype.createScorer = function (searcher, output) {
-	return new TermScorer(this, searcher, output);
+TermQuery.prototype.score = function (index, similarity) {
+	var scorer = new TermScorer(this, similarity);
+	index.getTermVectors(this.term, this.field).pipe(scorer);
+	return scorer;
 };
 
 /**
@@ -52,20 +54,20 @@ TermQuery.prototype.extractTerms = function () {
 /**
  * @protected
  * @constructor
- * @extends Pipe
- * @implements Scorer
+ * @extends Stream
+ * @implements ReadableStream
+ * @implements WritableStream
  * @param {TermQuery} query
- * @param {Searcher} searcher
- * @param {InputStream} output
+ * @param {Similarity} similarity
  */
 
-function TermScorer(query, searcher, output) {
+function TermScorer(query, similarity) {
+	Stream.call(this);
 	this._query = query;
-	this._searcher = searcher;
-	Pipe.call(this, output);
+	this._similarity = similarity;
 }
 
-TermScorer.prototype = Object.create(Pipe.prototype);
+TermScorer.prototype = Object.create(Stream.prototype);
 
 /**
  * @protected
@@ -76,26 +78,21 @@ TermScorer.prototype._query;
 
 /**
  * @protected
- * @type {Searcher}
+ * @type {Similarity}
  */
 
-TermScorer.prototype._searcher;
+TermScorer.prototype._similarity;
 
-/**
- * @param {Index} index
- */
+TermScorer.prototype.readable = true;
 
-TermScorer.prototype.scoreDocuments = function (index) {
-	index.getTermVectors(this._query.term, this._query.field, this);
-};
+TermScorer.prototype.writable = true;
 
 /**
  * @param {TermVector} termVec
- * @override
  */
 
-TermScorer.prototype.push = function (termVec) {
-	var similarity = this._searcher.similarity,
+TermScorer.prototype.write = function (termVec) {
+	var similarity = this._similarity,
 		doc = new DocumentTerms(termVec.documentID, [termVec]);
 	
 	//compute sumOfSquaredWeights
@@ -107,7 +104,19 @@ TermScorer.prototype.push = function (termVec) {
 		this._query.boost * 
 		similarity.norm(termVec);
 	
-	Pipe.prototype.push.call(this, doc);
+	this.emit('data', doc);
+};
+
+/**
+ * @param {TermVector} [termVec]
+ */
+
+TermScorer.prototype.end = function (termVec) {
+	if (typeof termVec !== "undefined") {
+		this.write(termVec);
+	}
+	this.emit('end');
+	this.destroy();
 };
 
 

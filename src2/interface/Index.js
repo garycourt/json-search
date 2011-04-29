@@ -27,7 +27,7 @@ Index.prototype.setTermIndexer = function (indexer) {};
 /**
  * @param {string} term
  * @param {string|null} field
- * @param {InputStream} output
+ * @return {ReadableStream}
  */
 
-Index.prototype.getTermVectors = function (term, field, output) {};
+Index.prototype.getTermVectors = function (term, field) {};

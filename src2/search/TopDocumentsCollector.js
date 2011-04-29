@@ -46,7 +46,7 @@ TopDocumentsCollector.prototype.lowestScore = 0;
  * @override
  */
 
-TopDocumentsCollector.prototype.push = function (doc) {
+TopDocumentsCollector.prototype.write = function (doc) {
 	if (this.collection.length < this.max || doc.score > this.lowestScore) {
 		if (this.collection.length >= this.max) {
 			this.collection.pop();  //remove lowest scored document

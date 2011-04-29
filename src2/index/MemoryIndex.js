@@ -41,13 +41,11 @@ MemoryIndex.prototype.setTermIndexer = function (indexer) {
 /**
  * @param {string} term
  * @param {string|null} field
- * @param {InputStream} output
+ * @return {ReadableStream}
  */
 
-MemoryIndex.prototype.getTermVectors = function (term, field, output) {
+MemoryIndex.prototype.getTermVectors = function (term, field) {
 	//TODO
-	output.start(null);
-	output.end(null);
 };
 
 

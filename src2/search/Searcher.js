@@ -28,27 +28,11 @@ Searcher.prototype.similarity = new DefaultSimilarity();
 
 Searcher.prototype.search = function (query, max, callback) {
 	var collector = new TopDocumentsCollector(max, callback);
-	var normQuery = new NormalizedQuery(query);
-	var scorer = normQuery.createScorer(collector);
-	scorer.scoreDocuments(this._index);
+	//var normQuery = new NormalizedQuery(query);
+	//normQuery.score(this._index, this.similarity).pipe(collector);
+	//FIXME:
+	query.score(this._index, this.similarity).pipe(collector);
 };
 
 
 exports.Searcher = Searcher;
-
-/**
- * MOVE ME SOMEWHERE ELSE
- */
-
-function testSearch() {
-	var searcher = new Searcher(new MemoryIndex());
-	searcher.search(new TermQuery("test", null), 10, function (err, docs) {
-		if (!err) {
-			console.log(docs);
-		} else {
-			console.error(err);
-		}
-	});
-}
-
-testSearch();
