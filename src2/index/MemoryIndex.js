@@ -9,14 +9,6 @@ function MemoryIndex() {
 };
 
 /**
- * @param {function()} func
- */
-
-MemoryIndex.queue = function (func) {
-	setTimeout(func, 0);
-};
-
-/**
  * @protected
  * @type {Object}
  */
@@ -101,115 +93,19 @@ MemoryIndex.prototype.setTermIndexer = function (indexer) {
 
 MemoryIndex.prototype.getTermVectors = function (term, field) {
 	var vecKey = JSON.stringify([term, field]),
-		entries = this._termVecs[vecKey],
-		stream = new MemoryIndexVectorizer(entries);
-	
-	MemoryIndex.queue(function () {
-		stream._run();
-	});
-	
-	return stream;
-};
-
-
-/**
- * @constructor
- * @extends {Stream}
- * @implements ReadableStream
- * @param {Array.<TermVectorEntry>} entries
- */
-
-function MemoryIndexVectorizer(entries) {
-	this._entries = entries;
-	this._index = 0;
-};
-
-MemoryIndexVectorizer.prototype = Object.create(Stream.prototype);
-
-/**
- * @type {Array.<TermVectorEntry>}
- */
-
-MemoryIndexVectorizer.prototype._entries;
-
-/**
- * @type {number}
- */
-
-MemoryIndexVectorizer.prototype._index;
-
-/**
- * @type {boolean}
- */
-
-MemoryIndexVectorizer.prototype._started = false;
-
-/**
- * @type {boolean}
- */
-
-MemoryIndexVectorizer.prototype._paused = false;
-
-/**
- * @type {boolean}
- */
-
-MemoryIndexVectorizer.prototype.readable = true;
-
-/**
- */
-
-MemoryIndexVectorizer.prototype._run = function () {
-	var termVec;
-	this._started = true;
-	
-	while (!this._paused && this._index < this._entries.length) {
-		//TODO
-		
-		this._index++;
-		this.emit('data', termVec);
-	}
-	
-	if (this._index >= this._entries.length) {
-		this.emit('end');
-		this.destroy();
-	}
+		entries = this._termVecs[vecKey] || [],
+		stream = new ArrayStream(entries, this.mapVectorEntry.bind(this));
+	return stream.start();
 };
 
 /**
+ * @param {TermVectorEntry} termVecEnt
+ * @return {TermVector}
  */
 
-MemoryIndexVectorizer.prototype.pause = function () {
-	this._paused = true;
-	Stream.prototype.pause.call(this);
+MemoryIndex.prototype.mapVectorEntry = function (termVecEnt) {
+	//TODO
 };
-
-/**
- */
-
-MemoryIndexVectorizer.prototype.resume = function () {
-	var self = this;
-	if (this._started && this._paused) {
-		this._paused = false;
-		MemoryIndex.queue(function () {
-			self._run();
-		});
-		Stream.prototype.resume.call(this);
-	}
-};
-
-/**
- */
-
-MemoryIndexVectorizer.prototype.destroy = function () {
-	this._index = Number.POSITIVE_INFINITY;
-	Stream.prototype.destroy.call(this);
-};
-
-/**
- */
-
-MemoryIndexVectorizer.prototype.destroySoon = function () {};  //Does nothing
 
 
 exports.MemoryIndex = MemoryIndex;

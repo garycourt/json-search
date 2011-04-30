@@ -120,3 +120,28 @@ if (typeof Array.orderedInsert !== "function") {
 		}
 	};
 }
+
+if (!Function.prototype.bind) {
+	/**
+	 * @param {Object} obj
+	 * @param {...*} [var_args]
+	 * @return {!Function}
+	 */
+	
+	Function.prototype.bind = function (obj, var_args) {
+		var slice = Array.prototype.slice,
+			self = this,
+			args,
+			bound;
+		obj = obj || {};
+		args = slice.call(arguments, 1);
+		bound = function () {
+			return self.apply(this instanceof F ? this : obj, args.concat(slice.call(arguments)));
+		};
+
+		F.prototype = self.prototype;
+		bound.prototype = new F();
+
+		return bound;
+	};
+}
