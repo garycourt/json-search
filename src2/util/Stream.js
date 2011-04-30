@@ -165,6 +165,7 @@ Stream.prototype.destroy = function () {
 	this.readable = false;
 	this.writable = false;
 	this.emit('close');
+	this.removeAllListeners();
 };
 
 Stream.prototype.destroySoon = Stream.prototype.destroy;

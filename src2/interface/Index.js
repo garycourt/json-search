@@ -6,10 +6,11 @@ function Index() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID|null} [id]
  * @param {function(PossibleError)} [callback]
  */
 
-Index.prototype.addDocument = function (doc, callback) {};
+Index.prototype.addDocument = function (doc, id, callback) {};
 
 /**
  * @param {DocumentID} id

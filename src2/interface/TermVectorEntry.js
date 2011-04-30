@@ -29,7 +29,7 @@ TermVectorEntry.prototype.termPositions;
 TermVectorEntry.prototype.termOffsets;
 
 /**
- * @type {string}
+ * @type {string|null}
  */
 
 TermVectorEntry.prototype.field;

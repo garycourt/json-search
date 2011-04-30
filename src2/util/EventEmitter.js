@@ -234,7 +234,7 @@ try {
 	};
 	
 	/**
-	 * @param {string} type
+	 * @param {string} [type]
 	 * @return {EventEmitter}
 	 */
 	
