@@ -38,29 +38,17 @@ if(typeof Array.remove !== "function") {
 }
 if(typeof Array.orderedInsert !== "function") {
   Array.orderedInsert = function(a, b, c) {
-    var e, d, g;
+    var d, f, g;
     if(a.length === 0) {
       a[0] = b
     }else {
-      e = 0;
-      d = a.length - 1;
-      for(g = Math.floor(d / 2);d - e > 0;) {
-        c(a[g], b) <= 0 ? e = g + 1 : d = g - 1, g = Math.round(e + (d - e) / 2)
+      d = 0;
+      f = a.length - 1;
+      for(g = Math.floor(f / 2);f - d > 0;) {
+        c(a[g], b) <= 0 ? d = g + 1 : f = g - 1, g = Math.round(d + (f - d) / 2)
       }
       c(a[g], b) <= 0 ? a.splice(g + 1, 0, b) : a.splice(g, 0, b)
     }
-  }
-}
-if(!Function.prototype.bind) {
-  Function.prototype.bind = function(a) {
-    var b = Array.prototype.slice, c = this, e, d, a = a || {};
-    e = b.call(arguments, 1);
-    d = function() {
-      return c.apply(this instanceof F ? this : a, e.concat(b.call(arguments)))
-    };
-    F.prototype = c.prototype;
-    d.prototype = new F;
-    return d
   }
 }
 ;var EventEmitter = function() {
@@ -108,8 +96,8 @@ try {
       return!0
     }else {
       if(Array.isArray(c)) {
-        for(var b = Array.prototype.slice.call(arguments, 1), c = c.slice(), e = 0, d = c.length;e < d;e++) {
-          c[e].apply(this, b)
+        for(var b = Array.prototype.slice.call(arguments, 1), c = c.slice(), d = 0, f = c.length;d < f;d++) {
+          c[d].apply(this, b)
         }
         return!0
       }else {
@@ -142,15 +130,15 @@ try {
     return this
   }, EventEmitter.prototype.on = EventEmitter.prototype.addListener, EventEmitter.prototype.once = function(a, b) {
     function c() {
-      e.removeListener(a, c);
+      d.removeListener(a, c);
       b.apply(this, arguments)
     }
     if("function" !== typeof b) {
       throw Error(".once only takes instances of Function");
     }
-    var e = this;
+    var d = this;
     c.listener = b;
-    e.on(a, c);
+    d.on(a, c);
     return this
   }, EventEmitter.prototype.removeListener = function(a, b) {
     if("function" !== typeof b) {
@@ -161,16 +149,16 @@ try {
     }
     var c = this._events[a];
     if(Array.isArray(c)) {
-      for(var e = -1, d = 0, g = c.length;d < g;d++) {
-        if(c[d] === b || c[d].listener && c[d].listener === b) {
-          e = d;
+      for(var d = -1, f = 0, g = c.length;f < g;f++) {
+        if(c[f] === b || c[f].listener && c[f].listener === b) {
+          d = f;
           break
         }
       }
-      if(e < 0) {
+      if(d < 0) {
         return this
       }
-      c.splice(e, 1);
+      c.splice(d, 1);
       c.length == 0 && delete this._events[a]
     }else {
       (c === b || c.listener && c.listener === b) && delete this._events[a]
@@ -201,14 +189,14 @@ Stream.prototype.readable = !1;
 Stream.prototype.writable = !1;
 Stream.prototype.pipe = function(a, b) {
   function c(b) {
-    a.writable && !1 === a.write(b) && f.pause()
+    a.writable && !1 === a.write(b) && e.pause()
   }
-  function e(b) {
+  function d(b) {
     a.emit("error", b);
-    f.destroy()
+    e.destroy()
   }
-  function d() {
-    f.readable && f.resume()
+  function f() {
+    e.readable && e.resume()
   }
   function g() {
     var b = Stream.pipes.indexOf(a);
@@ -216,42 +204,42 @@ Stream.prototype.pipe = function(a, b) {
     Stream.pipes.indexOf(a) === -1 && a.end()
   }
   function i() {
-    f.pause()
+    e.pause()
   }
   function j() {
-    f.readable && f.resume()
+    e.readable && e.resume()
   }
   function h() {
-    f.removeListener("data", c);
-    f.removeListener("error", e);
-    a.removeListener("drain", d);
-    f.removeListener("end", g);
-    f.removeListener("close", g);
+    e.removeListener("data", c);
+    e.removeListener("error", d);
+    a.removeListener("drain", f);
+    e.removeListener("end", g);
+    e.removeListener("close", g);
     a.removeListener("pause", i);
     a.removeListener("resume", j);
-    f.removeListener("end", h);
-    f.removeListener("close", h);
-    f.removeListener("error", h);
+    e.removeListener("end", h);
+    e.removeListener("close", h);
+    e.removeListener("error", h);
     a.removeListener("end", h);
     a.removeListener("close", h);
-    a.emit("pipeDisconnected", f)
+    a.emit("pipeDisconnected", e)
   }
-  var f = this;
+  var e = this;
   Stream.pipes.push(a);
-  f.on("data", c);
-  f.on("error", e);
-  a.on("drain", d);
+  e.on("data", c);
+  e.on("error", d);
+  a.on("drain", f);
   if(!b || b.end !== !1) {
-    f.on("end", g), f.on("close", g)
+    e.on("end", g), e.on("close", g)
   }
   a.on("pause", i);
   a.on("resume", j);
-  f.on("end", h);
-  f.on("close", h);
-  f.on("error", h);
+  e.on("end", h);
+  e.on("close", h);
+  e.on("error", h);
   a.on("end", h);
   a.on("close", h);
-  a.emit("pipeConnected", f)
+  a.emit("pipeConnected", e)
 };
 Stream.prototype.pause = function() {
   this.emit("pause")
@@ -366,17 +354,19 @@ function MemoryIndex() {
   this._docs = {};
   this._termVecs = {}
 }
+MemoryIndex.prototype._docCount = 0;
 MemoryIndex.prototype._termIndexer = new DefaultTermIndexer;
 MemoryIndex.prototype.generateID = function() {
   return String(Math.random())
 };
 MemoryIndex.prototype.addDocument = function(a, b, c) {
-  var e, d, b = typeof b === "undefined" || typeof b === "null" ? this.generateID() : String(b);
+  var d, f, g, b = typeof b === "undefined" || typeof b === "null" ? this.generateID() : String(b);
   this._docs[b] = a;
+  this._docCount++;
   a = this._termIndexer.index(a);
-  b = 0;
-  for(e = a.length;b < e;++b) {
-    d = JSON.stringify([a[b].term, a[b].field]), this._termVecs[d] ? this._termVecs[d].push(a[b]) : this._termVecs[d] = [a[b]]
+  d = 0;
+  for(f = a.length;d < f;++d) {
+    a.documentID = b, g = JSON.stringify([a[d].term, a[d].field]), this._termVecs[g] ? this._termVecs[g].push(a[d]) : this._termVecs[g] = [a[d]]
   }
   c && c(null)
 };
@@ -388,9 +378,9 @@ MemoryIndex.prototype.setTermIndexer = function(a) {
 };
 MemoryIndex.prototype.getTermVectors = function(a, b) {
   var c = this._termVecs[JSON.stringify([a, b])] || [];
-  return(new ArrayStream(c, this.mapVectorEntry.bind(this))).start()
-};
-MemoryIndex.prototype.mapVectorEntry = function() {
+  return(new ArrayStream(c, function(a) {
+    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTerms:a.totalFieldTerms || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:!0}
+  })).start()
 };
 exports.MemoryIndex = MemoryIndex;
 var DefaultSimilarity = function() {

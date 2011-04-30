@@ -44,4 +44,16 @@ TermVectorEntry.prototype.fieldBoost;
  * @type {number|undefined}
  */
 
+TermVectorEntry.prototype.totalFieldTerms;
+
+/**
+ * @type {number|undefined}
+ */
+
 TermVectorEntry.prototype.documentBoost;
+
+/**
+ * @type {DocumentID|undefined}
+ */
+
+TermVectorEntry.prototype.documentID;

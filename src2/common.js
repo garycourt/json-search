@@ -121,13 +121,13 @@ if (typeof Array.orderedInsert !== "function") {
 	};
 }
 
-if (!Function.prototype.bind) {
+//if (!Function.prototype.bind) {
 	/**
 	 * @param {Object} obj
 	 * @param {...*} [var_args]
 	 * @return {!Function}
 	 */
-	
+	/*
 	Function.prototype.bind = function (obj, var_args) {
 		var slice = Array.prototype.slice,
 			self = this,
@@ -144,4 +144,5 @@ if (!Function.prototype.bind) {
 
 		return bound;
 	};
-}
+	*/
+//}

@@ -17,6 +17,13 @@ MemoryIndex.prototype._docs;
 
 /**
  * @protected
+ * @type {number}
+ */
+
+MemoryIndex.prototype._docCount = 0;
+
+/**
+ * @protected
  * @type {Object.<Array.<TermVectorEntry>>}
  */
 
@@ -52,9 +59,11 @@ MemoryIndex.prototype.addDocument = function (doc, id, callback) {
 	}
 	
 	this._docs[id] = doc;
+	this._docCount++;
 	termVecEnts = this._termIndexer.index(doc);
 	
 	for (i = 0, il = termVecEnts.length; i < il; ++i) {
+		termVecEnts.documentID = id;
 		vecKey = JSON.stringify([termVecEnts[i].term, termVecEnts[i].field]);
 		if (!this._termVecs[vecKey]) {
 			this._termVecs[vecKey] = [ termVecEnts[i] ];
@@ -94,17 +103,23 @@ MemoryIndex.prototype.setTermIndexer = function (indexer) {
 MemoryIndex.prototype.getTermVectors = function (term, field) {
 	var vecKey = JSON.stringify([term, field]),
 		entries = this._termVecs[vecKey] || [],
-		stream = new ArrayStream(entries, this.mapVectorEntry.bind(this));
+		self = this,
+		stream = new ArrayStream(entries, function (termVecEnt) {
+			return /** @type {TermVector} */ ({
+				term : termVecEnt.term,
+				termFrequency : termVecEnt.termFrequency || 1,
+				termPositions : termVecEnt.termPositions || [0],
+				termOffsets : termVecEnt.termOffsets || [0],
+				field : termVecEnt.field || null,
+				fieldBoost : termVecEnt.fieldBoost || 1.0,
+				totalFieldTerms : termVecEnt.totalFieldTerms || 1,
+				documentBoost : termVecEnt.fieldBoost || 1.0,
+				documentID : termVecEnt.documentID,
+				documentFrequency : entries.length,
+				totalDocuments : self._docCount
+			});
+		});
 	return stream.start();
-};
-
-/**
- * @param {TermVectorEntry} termVecEnt
- * @return {TermVector}
- */
-
-MemoryIndex.prototype.mapVectorEntry = function (termVecEnt) {
-	//TODO
 };
 
 

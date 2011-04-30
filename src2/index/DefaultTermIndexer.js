@@ -1,6 +1,6 @@
 /**
  * @constructor
- * @implements TermIndexer
+ * @implements {TermIndexer}
  */
 
 function DefaultTermIndexer() {};

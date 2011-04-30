@@ -45,6 +45,12 @@ TermVector.prototype.fieldBoost;
  * @type {number}
  */
 
+TermVector.prototype.totalFieldTerms;
+
+/**
+ * @type {number}
+ */
+
 TermVector.prototype.documentBoost;
 
 /**
@@ -52,12 +58,6 @@ TermVector.prototype.documentBoost;
  */
 
 TermVector.prototype.documentID;
-
-/**
- * @type {number}
- */
-
-TermVector.prototype.totalFieldTerms;
 
 /**
  * @type {number}
