@@ -1,454 +1,520 @@
+var O = {};
+function F() {
+}
+function typeOf(a) {
+  return a === void 0 ? "undefined" : a === null ? "null" : Object.prototype.toString.call(a).split(" ").pop().split("]").shift().toLowerCase()
+}
 typeof exports === "undefined" && (exports = {});
 typeof require !== "function" && (require = function() {
   return exports
 });
 if(typeof Object.create !== "function") {
-  var F = function() {
-  };
   Object.create = function(a) {
     F.prototype = a;
     return new F
   }
 }
-var PossibleError;
-var DocumentID;
-var ScoreDoc = function(a, b) {
-  this.doc = a;
-  this.score = b
+if(typeof Array.isArray !== "function") {
+  Array.isArray = function(a) {
+    return typeOf(a) === "array"
+  }
+}
+if(typeof Array.add !== "function") {
+  Array.add = function(a, b) {
+    if(a.indexOf(b) === -1) {
+      return a[a.length] = b, !0
+    }
+    return!1
+  }
+}
+if(typeof Array.remove !== "function") {
+  Array.remove = function(a, b) {
+    var c = a.indexOf(b);
+    if(c !== -1) {
+      return a.splice(c, 1), !0
+    }
+    return!1
+  }
+}
+if(!Array.append) {
+  Array.append = function(a, b) {
+    b = b.slice(0);
+    b.unshift(a.length, 0);
+    a.splice.apply(a, b);
+    return a
+  }
+}
+if(typeof Array.orderedInsert !== "function") {
+  Array.orderedInsert = function(a, b, c) {
+    var e, d, f;
+    if(a.length === 0) {
+      a[0] = b
+    }else {
+      e = 0;
+      d = a.length - 1;
+      for(f = Math.floor(d / 2);d - e > 0;) {
+        c(a[f], b) <= 0 ? e = f + 1 : d = f - 1, f = Math.round(e + (d - e) / 2)
+      }
+      c(a[f], b) <= 0 ? a.splice(f + 1, 0, b) : a.splice(f, 0, b)
+    }
+  }
+}
+;var EventEmitter = function() {
 };
-exports.ScoreDoc = ScoreDoc;
-var TopDocs = function(a, b, c) {
-  this.totalHits = a || 0;
-  this.scoreDocs = b || [];
-  this.maxScore = c || NaN
+try {
+  if(!require("events").EventEmitter) {
+    throw Error();
+  }
+  EventEmitter = require("events").EventEmitter
+}catch(e$$5) {
+  EventEmitter.DEFAULT_MAX_LISTENERS = 10, EventEmitter.prototype.setMaxListeners = function(a) {
+    if(!this._events) {
+      this._events = {}
+    }
+    this._events.maxListeners = a
+  }, EventEmitter.prototype.emit = function(a, b) {
+    if(a === "error" && (!this._events || !this._events.error || Array.isArray(this._events.error) && !this._events.error.length)) {
+      if(arguments[1] instanceof Error) {
+        throw arguments[1];
+      }else {
+        throw Error("Uncaught, unspecified 'error' event.");
+      }
+    }
+    if(!this._events) {
+      return!1
+    }
+    var c = this._events[a];
+    if(!c) {
+      return!1
+    }
+    if(typeof c == "function") {
+      switch(arguments.length) {
+        case 1:
+          c.call(this);
+          break;
+        case 2:
+          c.call(this, arguments[1]);
+          break;
+        case 3:
+          c.call(this, arguments[1], arguments[2]);
+          break;
+        default:
+          b = Array.prototype.slice.call(arguments, 1), c.apply(this, b)
+      }
+      return!0
+    }else {
+      if(Array.isArray(c)) {
+        for(var b = Array.prototype.slice.call(arguments, 1), c = c.slice(), e = 0, d = c.length;e < d;e++) {
+          c[e].apply(this, b)
+        }
+        return!0
+      }else {
+        return!1
+      }
+    }
+  }, EventEmitter.prototype.addListener = function(a, b) {
+    if("function" !== typeof b) {
+      throw Error("addListener only takes instances of Function");
+    }
+    if(!this._events) {
+      this._events = {}
+    }
+    this.emit("newListener", a, b);
+    if(this._events[a]) {
+      if(Array.isArray(this._events[a])) {
+        if(!this._events[a].warned) {
+          var c;
+          if((c = this._events.maxListeners !== void 0 ? this._events.maxListeners : EventEmitter.DEFAULT_MAX_LISTENERS) && c > 0 && this._events[a].length > c) {
+            this._events[a].warned = !0
+          }
+        }
+        this._events[a].push(b)
+      }else {
+        this._events[a] = [this._events[a], b]
+      }
+    }else {
+      this._events[a] = b
+    }
+    return this
+  }, EventEmitter.prototype.on = EventEmitter.prototype.addListener, EventEmitter.prototype.once = function(a, b) {
+    function c() {
+      e.removeListener(a, c);
+      b.apply(this, arguments)
+    }
+    if("function" !== typeof b) {
+      throw Error(".once only takes instances of Function");
+    }
+    var e = this;
+    c.listener = b;
+    e.on(a, c);
+    return this
+  }, EventEmitter.prototype.removeListener = function(a, b) {
+    if("function" !== typeof b) {
+      throw Error("removeListener only takes instances of Function");
+    }
+    if(!this._events || !this._events[a]) {
+      return this
+    }
+    var c = this._events[a];
+    if(Array.isArray(c)) {
+      for(var e = -1, d = 0, f = c.length;d < f;d++) {
+        if(c[d] === b || c[d].listener && c[d].listener === b) {
+          e = d;
+          break
+        }
+      }
+      if(e < 0) {
+        return this
+      }
+      c.splice(e, 1);
+      c.length == 0 && delete this._events[a]
+    }else {
+      (c === b || c.listener && c.listener === b) && delete this._events[a]
+    }
+    return this
+  }, EventEmitter.prototype.removeAllListeners = function(a) {
+    if(arguments.length === 0) {
+      return this._events = {}, this
+    }
+    a && this._events && this._events[a] && (this._events[a] = null);
+    return this
+  }, EventEmitter.prototype.listeners = function(a) {
+    if(!this._events) {
+      this._events = {}
+    }
+    this._events[a] || (this._events[a] = []);
+    Array.isArray(this._events[a]) || (this._events[a] = [this._events[a]]);
+    return this._events[a]
+  }
+}
+exports.EventEmitter = EventEmitter;
+function Stream() {
+  EventEmitter.call(this)
+}
+Stream.prototype = Object.create(EventEmitter.prototype);
+Stream.pipes = [];
+Stream.prototype.readable = !1;
+Stream.prototype.writable = !1;
+Stream.prototype.pipe = function(a, b) {
+  function c(b) {
+    a.writable && !1 === a.write(b) && g.pause()
+  }
+  function e(b) {
+    a.emit("error", b);
+    g.destroy()
+  }
+  function d() {
+    g.readable && g.resume()
+  }
+  function f() {
+    var b = Stream.pipes.indexOf(a);
+    Stream.pipes.splice(b, 1);
+    Stream.pipes.indexOf(a) === -1 && a.end()
+  }
+  function i() {
+    g.pause()
+  }
+  function j() {
+    g.readable && g.resume()
+  }
+  function h() {
+    g.removeListener("data", c);
+    g.removeListener("error", e);
+    a.removeListener("drain", d);
+    g.removeListener("end", f);
+    g.removeListener("close", f);
+    a.removeListener("pause", i);
+    a.removeListener("resume", j);
+    g.removeListener("end", h);
+    g.removeListener("close", h);
+    g.removeListener("error", h);
+    a.removeListener("end", h);
+    a.removeListener("close", h);
+    a.emit("pipeDisconnected", g)
+  }
+  var g = this;
+  Stream.pipes.push(a);
+  g.on("data", c);
+  g.on("error", e);
+  a.on("drain", d);
+  if(!b || b.end !== !1) {
+    g.on("end", f), g.on("close", f)
+  }
+  a.on("pause", i);
+  a.on("resume", j);
+  g.on("end", h);
+  g.on("close", h);
+  g.on("error", h);
+  a.on("end", h);
+  a.on("close", h);
+  a.emit("pipeConnected", g)
 };
-exports.TopDocs = TopDocs;
-var Collector = function() {
+Stream.prototype.pause = function() {
+  this.emit("pause")
 };
-Collector.prototype.collect = function() {
+Stream.prototype.resume = function() {
+  this.emit("resume")
 };
-Collector.prototype.setNextReader = function() {
+Stream.prototype.destroy = function() {
+  this.writable = this.readable = !1;
+  this.emit("close");
+  this.removeAllListeners()
 };
-Collector.prototype.acceptsDocsOutOfOrder = function() {
+Stream.prototype.destroySoon = Stream.prototype.destroy;
+exports.Stream = Stream;
+function Collector(a) {
+  var b = this;
+  Stream.call(this);
+  this.collection = [];
+  this.callback = a;
+  this.on("error", function(a) {
+    if(b.callback) {
+      b.callback(a), b.callback = null
+    }
+  })
+}
+Collector.prototype = Object.create(Stream.prototype);
+Collector.prototype.callback = null;
+Collector.prototype.writable = !0;
+Collector.prototype.write = function(a) {
+  this.collection.push(a);
+  return!0
 };
+Collector.prototype.end = function(a) {
+  typeof a !== "undefined" && this.write(a);
+  this.destroy()
+};
+Collector.prototype.destroy = function() {
+  if(this.callback) {
+    this.callback(null, this.collection), this.callback = null
+  }
+};
+Collector.prototype.destroySoon = Collector.prototype.destroy;
 exports.Collector = Collector;
-var TopDocsCollector = function(a) {
-  this.pq = a
+function DocumentTerms(a, b) {
+  this.id = a;
+  this.terms = b || []
+}
+DocumentTerms.prototype.terms = [];
+exports.DocumentTerms = DocumentTerms;
+function TopDocumentsCollector(a, b) {
+  Collector.call(this, b);
+  this.max = a || 1
+}
+TopDocumentsCollector.compareScores = function(a, b) {
+  return b.score - a.score
 };
-TopDocsCollector.EMPTY_TOPDOCS = new TopDocs(0, [], NaN);
-TopDocsCollector.prototype.collect = function() {
-  throw Error("Not Implemented");
-};
-TopDocsCollector.prototype.setNextReader = function() {
-  throw Error("Not Implemented");
-};
-TopDocsCollector.prototype.acceptsDocsOutOfOrder = function() {
-  throw Error("Not Implemented");
-};
-TopDocsCollector.prototype.totalHits = 0;
-TopDocsCollector.prototype.populateResults = function(a, b) {
-  var c;
-  for(c = b;c >= 0;c--) {
-    a[c] = this.pq.pop()
+TopDocumentsCollector.prototype = Object.create(Collector.prototype);
+TopDocumentsCollector.prototype.lowestScore = 0;
+TopDocumentsCollector.prototype.write = function(a) {
+  if(this.collection.length < this.max || a.score > this.lowestScore) {
+    this.collection.length >= this.max && this.collection.pop(), Array.orderedInsert(this.collection, a, TopDocumentsCollector.compareScores), this.lowestScore = this.collection[this.collection.length - 1].score
   }
 };
-TopDocsCollector.prototype.newTopDocs = function(a) {
-  return a == null ? TopDocsCollector.EMPTY_TOPDOCS : new TopDocs(this.totalHits, a)
-};
-TopDocsCollector.prototype.topDocs = function(a, b) {
-  var c = Math.min(this.totalHits, this.pq.size()), d, a = a || 0;
-  b === void 0 && (b = c);
-  if(a < 0 || a >= c || b <= 0) {
-    return this.newTopDocs(null, a)
+exports.TopDocumentsCollector = TopDocumentsCollector;
+function DefaultTermIndexer() {
+}
+DefaultTermIndexer.prototype.index = function(a, b) {
+  var c, e, d, f = [];
+  switch(typeOf(a)) {
+    case "null":
+    ;
+    case "boolean":
+    ;
+    case "number":
+      f[0] = {term:a, field:b};
+      break;
+    case "string":
+      c = a.replace(/[^\w\d]/g, " ").replace(/\s\s/g, " ").toLowerCase().split(" ");
+      e = {};
+      for(d = 0;d < c.length;++d) {
+        e[c[d]] ? (e[c[d]].termFrequency++, e[c[d]].termPositions.push(d), e[c[d]].termOffsets.push(d)) : e[c[d]] = {term:c[d], termFrequency:1, termPositions:[d], termOffsets:[d], field:b, totalFieldTokens:c.length}
+      }
+      for(d in e) {
+        e[d] !== O[d] && (f[f.length] = e[d])
+      }
+      break;
+    case "object":
+      for(d in a) {
+        a[d] !== O[d] && (f = f.concat(this.index(a[d], b ? b + "." + d : d)))
+      }
+      break;
+    case "array":
+      for(d = 0;d < a.length;++d) {
+        f = f.concat(this.index(a[d], b ? b + "." + d : String(d)))
+      }
   }
-  b = Math.min(c - a, b);
-  c = Array(b);
-  for(d = this.pq.size() - a - b;d > 0;d--) {
-    this.pq.pop()
-  }
-  this.populateResults(c, b);
-  return this.newTopDocs(c, a)
+  return f
 };
-exports.TopDocsCollector = TopDocsCollector;
-var DocIdSetIterator = function() {
+DefaultTermIndexer.prototype.toSource = function() {
 };
-DocIdSetIterator.NO_MORE_DOCS = Number.MAX_VALUE;
-DocIdSetIterator.prototype.docID = function() {
-};
-DocIdSetIterator.prototype.nextDoc = function() {
-};
-DocIdSetIterator.prototype.advance = function() {
-};
-exports.DocIdSetIterator = DocIdSetIterator;
-var Scorer = function(a) {
-  this.weight = a
-};
-Scorer.prototype.docID = function() {
-  throw Error("Not Implemented");
-};
-Scorer.prototype.nextDoc = function() {
-  throw Error("Not Implemented");
-};
-Scorer.prototype.advance = function() {
-  throw Error("Not Implemented");
-};
-Scorer.prototype.collect = function(a, b, c) {
-  a.scorer = this;
-  if(b !== void 0) {
-    for(;c < b;) {
-      a.collect(c), c = this.nextDoc()
-    }
-  }else {
-    for(c = this.nextDoc();c !== DocIdSetIterator.NO_MORE_DOCS;) {
-      a.collect(c), c = this.nextDoc()
-    }
-  }
-  return c !== DocIdSetIterator.NO_MORE_DOCS
-};
-Scorer.prototype.score = function() {
-  throw Error("Not Implemented");
-};
-Scorer.prototype.freq = function() {
-  throw Error("Scorer does not implement freq()");
-};
-exports.Scorer = Scorer;
-var Weight = function() {
-};
-Weight.prototype.explain = function() {
-};
-Weight.prototype.getQuery = function() {
-};
-Weight.prototype.getValue = function() {
-};
-Weight.prototype.normalize = function() {
-};
-Weight.prototype.scorer = function() {
-};
-Weight.prototype.sumOfSquaredWeights = function() {
-};
-Weight.prototype.scoresDocsOutOfOrder = function() {
-};
-exports.Weight = Weight;
-var PriorityQueue = function() {
-};
-PriorityQueue.prototype._size = 0;
-PriorityQueue.prototype._maxSize = 0;
-PriorityQueue.prototype.lessThan = function() {
-  throw Error("Not Implemented");
-};
-PriorityQueue.prototype.getSentinelObject = function() {
-  return null
-};
-PriorityQueue.prototype.initialize = function(a) {
-  var b;
-  this._size = 0;
-  this._heap = Array(0 === a ? 2 : a === Number.MAX_VALUE ? Number.MAX_VALUE : a + 1);
-  this._maxSize = a;
-  b = this.getSentinelObject();
-  if(b !== null) {
-    this._heap[1] = b;
-    for(b = 2;b < this._heap.length;b++) {
-      this._heap[b] = this.getSentinelObject()
-    }
-    this._size = a
-  }
-};
-PriorityQueue.prototype.add = function(a) {
-  this._size++;
-  this._heap[this._size] = a;
-  this.upHeap();
-  return heap[1]
-};
-PriorityQueue.prototype.insertWithOverflow = function(a) {
-  var b;
-  return this._size < this._maxSize ? (this.add(a), null) : this._size > 0 && !this.lessThan(a, this._heap[1]) ? (b = this._heap[1], this._heap[1] = a, this.updateTop(), b) : a
-};
-PriorityQueue.prototype.top = function() {
-  return this._heap[1]
-};
-PriorityQueue.prototype.pop = function() {
+exports.DefaultTermIndexer = DefaultTermIndexer;
+function ArrayStream(a, b) {
+  this._entries = a;
+  this._index = 0;
+  this._mapper = b
+}
+ArrayStream.prototype = Object.create(Stream.prototype);
+ArrayStream.prototype._started = !1;
+ArrayStream.prototype._paused = !1;
+ArrayStream.prototype.readable = !0;
+ArrayStream.prototype._run = function() {
   var a;
-  return size > 0 ? (a = this._heap[1], this._heap[1] = this._heap[this._size], this._heap[this._size] = null, this._size--, this.downHeap(), a) : null
-};
-PriorityQueue.prototype.updateTop = function() {
-  this.downHeap();
-  return this._heap[1]
-};
-PriorityQueue.prototype.size = function() {
-  return this._size
-};
-PriorityQueue.prototype.clear = function() {
-  this._heap = Array(this._maxSize + 1);
-  this._size = 0
-};
-PriorityQueue.prototype.upHeap = function() {
-  for(var a = this._size, b = this._heap[a], c = a >>> 1;c > 0 && this.lessThan(b, this._heap[c]);) {
-    this._heap[a] = this._heap[c], a = c, c >>>= 1
+  for(this._started = !0;!this._paused && this._index < this._entries.length;) {
+    a = this._entries[this._index++], this._mapper && (a = this._mapper(a)), this.emit("data", a)
   }
-  this._heap[a] = b
+  this._index >= this._entries.length && (this.emit("end"), this.destroy())
 };
-PriorityQueue.prototype.downHeap = function() {
-  var a = 1, b = this._heap[a], c = a << 1, d = c + 1;
-  for(d <= this._size && this.lessThan(this._heap[d], this._heap[c]) && (c = d);c <= this._size && this.lessThan(this._heap[c], b);) {
-    this._heap[a] = this._heap[c], a = c, c = a << 1, d = c + 1, d <= this._size && this.lessThan(this._heap[d], this._heap[c]) && (c = d)
-  }
-  this._heap[a] = b
-};
-exports.PriorityQueue = PriorityQueue;
-var HitQueue = function(a, b) {
-  this.prePopulate = b;
-  this.initialize(a)
-};
-HitQueue.prototype = Object.create(PriorityQueue.prototype);
-HitQueue.prototype.getSentinelObject = function() {
-  return!this.prePopulate ? null : new ScoreDoc("", Number.NEGATIVE_INFINITY)
-};
-HitQueue.prototype.lessThan = function(a, b) {
-  return a.score === b.score ? a.doc > b.doc : a.score < b.score
-};
-exports.HitQueue = HitQueue;
-var Index = function() {
-};
-Index.prototype.numDocs = function() {
-  throw Error("Not Implemented");
-};
-Index.prototype.docFreq = function() {
-  throw Error("Not Implemented");
-};
-var Query = function() {
-};
-Query.prototype.boost = 1;
-Query.prototype.createWeight = function() {
-  throw Error("Unsupported Operation");
-};
-Query.prototype.weight = function(a) {
-  var b = a.rewrite(this).createWeight(a), c = b.sumOfSquaredWeights(), a = a.similarity.queryNorm(c);
-  if(a === Number.POSITIVE_INFINITY || a === Number.NEGATIVE_INFINITY || isNaN(a)) {
-    a = 1
-  }
-  b.normalize(a);
-  return b
-};
-Query.prototype.rewrite = function() {
+ArrayStream.prototype.start = function() {
+  var a = this;
+  setTimeout(function() {
+    a._run()
+  }, 0);
   return this
 };
-Query.prototype.extractTerms = function() {
-  throw Error("Unsupported Operation");
+ArrayStream.prototype.pause = function() {
+  this._paused = !0;
+  Stream.prototype.pause.call(this)
 };
-exports.Query = Query;
-IndexSearcher = function(a) {
-  this.reader = a
-};
-IndexSearcher.prototype.similarity = new DefaultSimilarity;
-IndexSearcher.prototype.createWeight = function(a) {
-  return a.weight(this)
-};
-IndexSearcher.prototype.search = function(a, b, c) {
-  var d;
-  if(a instanceof Query) {
-    a = this.createWeight(a)
-  }else {
-    if(!(a instanceof Weight)) {
-      throw Error("Search query must be an instance of the Query class.");
-    }
+ArrayStream.prototype.resume = function() {
+  if(this._started && this._paused) {
+    this._paused = !1, this.start(), Stream.prototype.resume.call(this)
   }
-  b = Math.min(b, Number.MAX_VALUE);
-  d = TopScoreDocCollector.create(b, !a.scoresDocsOutOfOrder());
-  this.collectSearch(a, d, function(a) {
-    a ? c(a) : c(null, d.topDocs())
-  })
 };
-IndexSearcher.prototype.collectSearch = function(a, b) {
-  var c;
-  b.setNextReader(this.reader, null);
-  c = a.scorer(this.reader, !b.acceptsDocsOutOfOrder(), !0);
-  c !== null && c.collect(b)
+ArrayStream.prototype.destroy = function() {
+  this._index = Number.POSITIVE_INFINITY;
+  Stream.prototype.destroy.call(this)
 };
-IndexSearcher.prototype.rewrite = function(a) {
-  var b;
-  for(b = a.rewrite(this.reader);b !== a;b = a.rewrite(this.reader)) {
-    a = b
+ArrayStream.prototype.destroySoon = function() {
+};
+exports.ArrayStream = ArrayStream;
+function MemoryIndex() {
+  this._docs = {};
+  this._termVecs = {}
+}
+MemoryIndex.prototype._docCount = 0;
+MemoryIndex.prototype._termIndexer = new DefaultTermIndexer;
+MemoryIndex.prototype.generateID = function() {
+  return String(Math.random())
+};
+MemoryIndex.prototype.addDocument = function(a, b, c) {
+  var e, d, f, b = typeof b === "undefined" || typeOf(b) === "null" ? this.generateID() : String(b);
+  this._docs[b] = a;
+  this._docCount++;
+  a = this._termIndexer.index(a);
+  e = 0;
+  for(d = a.length;e < d;++e) {
+    a[e].documentID = b, f = JSON.stringify([a[e].term, a[e].field]), this._termVecs[f] ? this._termVecs[f].push(a[e]) : this._termVecs[f] = [a[e]]
   }
-  return a
+  c && c(null)
 };
-exports.IndexSearcher = IndexSearcher;
-var Similarity = function() {
+MemoryIndex.prototype.getDocument = function(a, b) {
+  b(null, this._docs[a])
 };
-Similarity.NO_DOC_ID_PROVIDED = -1;
-Similarity.prototype.computeNorm = function() {
+MemoryIndex.prototype.setTermIndexer = function(a) {
+  this._termIndexer = a
 };
-Similarity.prototype.queryNorm = function() {
+MemoryIndex.prototype.getTermVectors = function(a, b) {
+  var c = this._termVecs[JSON.stringify([a, b])] || [], e = this;
+  return(new ArrayStream(c, function(a) {
+    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTokens:a.totalFieldTokens || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:e._docCount}
+  })).start()
 };
-Similarity.prototype.tf = function() {
-};
-Similarity.prototype.sloppyFreq = function() {
-};
-Similarity.prototype.idf = function() {
-};
-Similarity.prototype.coord = function() {
-};
-Similarity.prototype.scorePayload = function() {
-};
-Similarity.prototype.explainTermIDF = function() {
-};
-Similarity.prototype.explainPhraseIDF = function() {
-};
-exports.Similarity = Similarity;
+exports.MemoryIndex = MemoryIndex;
 var DefaultSimilarity = function() {
 };
-DefaultSimilarity.prototype.discountOverlaps = !0;
-DefaultSimilarity.prototype.computeNorm = function(a, b) {
-  return b.boost * (1 / Math.sqrt(this.discountOverlaps ? b.length - b.numOverlap : b.length))
+DefaultSimilarity.prototype.norm = function(a) {
+  return a.documentBoost * a.fieldBoost * (1 / Math.sqrt(a.totalFieldTokens))
 };
 DefaultSimilarity.prototype.queryNorm = function(a) {
-  return 1 / Math.sqrt(a)
+  return 1 / Math.sqrt(a.sumOfSquaredWeights)
 };
 DefaultSimilarity.prototype.tf = function(a) {
-  return Math.sqrt(a)
+  return Math.sqrt(a.termFrequency)
 };
 DefaultSimilarity.prototype.sloppyFreq = function(a) {
   return 1 / (a + 1)
 };
-DefaultSimilarity.prototype.idf = function(a, b) {
-  return Math.log(b / (a + 1)) + 1
+DefaultSimilarity.prototype.idf = function(a) {
+  return Math.log(a.totalDocuments / (a.documentFrequency + 1)) + 1
 };
 DefaultSimilarity.prototype.coord = function(a, b) {
   return a / b
 };
-DefaultSimilarity.prototype.scorePayload = function() {
-  return 1
-};
-DefaultSimilarity.prototype.explainTermIDF = function(a, b, c) {
-  var d = b.numDocs || 0;
-  c === void 0 && (c = b.termDocFreq[a] || 0);
-  return new Explanation(this.idf(c, d), "idf(docFreq=" + c + ", maxDocs=" + d + ")")
-};
-DefaultSimilarity.prototype.explainPhraseIDF = function(a, b) {
-  var c = b.numDocs || 0, d = 0, e = [], f, g;
-  for(f = 0;f < a.length;f++) {
-    g = b.termDocFreq[a[f]] || 0, d += this.idf(g, c), e.push(" "), e.push(a[f].text), e.push("="), e.push(g)
-  }
-  return new Explanation(d, e.join(""))
-};
 exports.DefaultSimilarity = DefaultSimilarity;
-var FieldInvertState = function(a, b, c, d, e) {
-  this.position = a || 0;
-  this.length = b || 0;
-  this.numOverlap = c || 0;
-  this.offset = d || 0;
-  this.maxTermFrequency = 0;
-  this.boost = e || 1
+function Searcher(a) {
+  this._index = a
+}
+Searcher.prototype.similarity = new DefaultSimilarity;
+Searcher.prototype.search = function(a, b, c) {
+  b = new TopDocumentsCollector(b, c);
+  (new NormalizedQuery(a)).score(this._index, this.similarity).pipe(b)
 };
-FieldInvertState.prototype.position = 0;
-FieldInvertState.prototype.length = 0;
-FieldInvertState.prototype.numOverlap = 0;
-FieldInvertState.prototype.offset = 0;
-FieldInvertState.prototype.maxTermFrequency = 0;
-FieldInvertState.prototype.boost = 1;
-FieldInvertState.prototype.reset = function(a) {
-  this.maxTermFrequency = this.offset = this.numOverlap = this.length = this.position = 0;
-  this.boost = a
+exports.Searcher = Searcher;
+function TermQuery(a, b, c) {
+  this.term = a;
+  this.field = b || null;
+  this.boost = c || 1
+}
+TermQuery.prototype.field = null;
+TermQuery.prototype.boost = 1;
+TermQuery.prototype.score = function(a, b) {
+  var c = new TermScorer(this, b);
+  a.getTermVectors(this.term, this.field).pipe(c);
+  return c
 };
-exports.FieldInvertState = FieldInvertState;
-var TopScoreDocCollector = function(a) {
-  TopDocsCollector.call(this, new HitQueue(a, !0));
-  this.pqTop = this.pq.top()
+TermQuery.prototype.extractTerms = function() {
+  return[{term:this.term, field:this.field}]
 };
-TopScoreDocCollector.create = function(a, b) {
-  if(a <= 0) {
-    throw Error("numHits must be > 0; please use TotalHitCountCollector if you just need the total hit count");
-  }
-  return b ? new InOrderTopScoreDocCollector(a) : new OutOfOrderTopScoreDocCollector(a)
+function TermScorer(a, b) {
+  Stream.call(this);
+  this._query = a;
+  this._similarity = b
+}
+TermScorer.prototype = Object.create(Stream.prototype);
+TermScorer.prototype.readable = !0;
+TermScorer.prototype.writable = !0;
+TermScorer.prototype.write = function(a) {
+  var b = this._similarity, c = new DocumentTerms(a.documentID, [a]);
+  c.sumOfSquaredWeights = Math.pow(b.idf(a) * this._query.boost, 2);
+  c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._query.boost * b.norm(a);
+  this.emit("data", c)
 };
-TopScoreDocCollector.prototype = Object.create(TopDocsCollector.prototype);
-TopScoreDocCollector.prototype.newTopDocs = function(a, b) {
-  var c;
-  if(!a) {
-    return TopDocsCollector.EMPTY_TOPDOCS
-  }
-  if(b === 0) {
-    c = a[0].score
-  }else {
-    for(c = this.pq.size();c > 1;c--) {
-      this.pq.pop()
-    }
-    c = this.pq.pop().score
-  }
-  return new TopDocs(this.totalHits, a, c)
+TermScorer.prototype.end = function(a) {
+  typeof a !== "undefined" && this.write(a);
+  this.emit("end");
+  this.destroy()
 };
-TopScoreDocCollector.prototype.setNextReader = function(a, b) {
-  this.docBase = b
+exports.TermQuery = TermQuery;
+function NormalizedQuery(a) {
+  this.query = a
+}
+NormalizedQuery.prototype.boost = 1;
+NormalizedQuery.prototype.score = function(a, b) {
+  var c = new NormalizedScorer(this, b);
+  this.query.score(a, b).pipe(c);
+  return c
 };
-var InOrderTopScoreDocCollector = function(a) {
-  TopScoreDocCollector.call(this, a)
+NormalizedQuery.prototype.extractTerms = function() {
+  return this.query.extractTerms()
 };
-InOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
-InOrderTopScoreDocCollector.prototype.collect = function(a) {
-  var b = this.scorer.score();
-  this.totalHits++;
-  if(!(b <= this.pqTop.score)) {
-    this.pqTop.doc = this.docBase ? this.docBase + a : a, this.pqTop.score = b, this.pqTop = this.pq.updateTop()
-  }
+function NormalizedScorer(a, b) {
+  Stream.call(this);
+  this._query = a;
+  this._similarity = b
+}
+NormalizedScorer.prototype = Object.create(Stream.prototype);
+NormalizedScorer.prototype.readable = !0;
+NormalizedScorer.prototype.writable = !0;
+NormalizedScorer.prototype.write = function(a) {
+  var b = this._query.extractTerms();
+  a.score *= this._similarity.queryNorm(a) * this._similarity.coord(a.terms.length, b.length);
+  this.emit("data", a)
 };
-InOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function() {
-  return!1
+NormalizedScorer.prototype.end = function(a) {
+  typeof a !== "undefined" && this.write(a);
+  this.emit("end");
+  this.destroy()
 };
-var OutOfOrderTopScoreDocCollector = function(a) {
-  TopScoreDocCollector.call(this, a)
-};
-OutOfOrderTopScoreDocCollector.prototype = Object.create(TopScoreDocCollector);
-OutOfOrderTopScoreDocCollector.prototype.collect = function(a) {
-  var b = this.scorer.score();
-  this.totalHits++;
-  a = this.docBase ? this.docBase + a : a;
-  if(!(b < this.pqTop.score || b === this.pqTop.score && a > this.pqTop.doc)) {
-    this.pqTop.doc = a, this.pqTop.score = b, this.pqTop = this.pq.updateTop()
-  }
-};
-OutOfOrderTopScoreDocCollector.prototype.acceptsDocsOutOfOrder = function() {
-  return!0
-};
-exports.TopScoreDocCollector = TopScoreDocCollector;
-exports.InOrderTopScoreDocCollector = InOrderTopScoreDocCollector;
-exports.OutOfOrderTopScoreDocCollector = OutOfOrderTopScoreDocCollector;
-var Term = function(a, b) {
-  this.field = a || "";
-  this.text = b || ""
-};
-Term.prototype.createTerm = function(a) {
-  return new Term(this.field, a)
-};
-Term.prototype.equals = function(a) {
-  return this === a || typeof a === "object" && this.field === a.field && this.text === a.text
-};
-exports.Term = Term;
-var Explanation = function(a, b) {
-  this.value = a;
-  this.description = b;
-  this.details = []
-};
-Explanation.prototype.isMatch = function() {
-  return this.value > 0
-};
-Explanation.prototype.getSummary = function() {
-  return this.value + " = " + this.description
-};
-Explanation.prototype.toString = function(a) {
-  var b = [], c, a = a || 0;
-  for(c = 0;c < a;c++) {
-    b.push("  ")
-  }
-  b.push(this.getSummary());
-  b.push("\n");
-  if(this.details) {
-    for(c = 0;c < this.details.length;c++) {
-      b.push(this.details[c].toString(a + 1))
-    }
-  }
-  return b.join("")
-};
-exports.Explanation = Explanation;
-var SearchResult = function() {
-};
-exports.SearchResult = SearchResult;
+exports.NormalizedQuery = NormalizedQuery;
 
