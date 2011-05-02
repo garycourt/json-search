@@ -45,7 +45,7 @@ TermVector.prototype.fieldBoost;
  * @type {number}
  */
 
-TermVector.prototype.totalFieldTerms;
+TermVector.prototype.totalFieldTokens;
 
 /**
  * @type {number}

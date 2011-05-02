@@ -11,7 +11,7 @@ var DefaultSimilarity = function () {};
  */
 
 DefaultSimilarity.prototype.norm = function (termVec) {
-	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTerms));
+	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTokens));
 };
 
 /**

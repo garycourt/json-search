@@ -43,11 +43,14 @@ TermQuery.prototype.score = function (index, similarity) {
 };
 
 /**
- * @return {Array.<string>}
+ * @return {Array.<TermVectorEntry>}
  */
 
 TermQuery.prototype.extractTerms = function () {
-	return [this.term];
+	return [ /** @type {TermVectorEntry} */ ({
+		term : this.term,
+		field : this.field
+	})];
 };
 
 

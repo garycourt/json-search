@@ -112,7 +112,7 @@ MemoryIndex.prototype.getTermVectors = function (term, field) {
 				termOffsets : termVecEnt.termOffsets || [0],
 				field : termVecEnt.field || null,
 				fieldBoost : termVecEnt.fieldBoost || 1.0,
-				totalFieldTerms : termVecEnt.totalFieldTerms || 1,
+				totalFieldTokens : termVecEnt.totalFieldTokens || 1,
 				documentBoost : termVecEnt.fieldBoost || 1.0,
 				documentID : termVecEnt.documentID,
 				documentFrequency : entries.length,

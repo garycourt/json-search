@@ -328,7 +328,7 @@ DefaultTermIndexer.prototype.index = function(a, b) {
       c = a.replace(/[^\w\d]/g, " ").replace(/\s\s/g, " ").toLowerCase().split(" ");
       e = {};
       for(d = 0;d < c.length;++d) {
-        e[c[d]] ? (e[c[d]].termFrequency++, e[c[d]].termPositions.push(d), e[c[d]].termOffsets.push(d)) : e[c[d]] = {term:c[d], termFrequency:1, termPositions:[d], termOffsets:[d], field:b, totalFieldTerms:c.length}
+        e[c[d]] ? (e[c[d]].termFrequency++, e[c[d]].termPositions.push(d), e[c[d]].termOffsets.push(d)) : e[c[d]] = {term:c[d], termFrequency:1, termPositions:[d], termOffsets:[d], field:b, totalFieldTokens:c.length}
       }
       for(d in e) {
         e[d] !== O[d] && (f[f.length] = e[d])
@@ -417,14 +417,14 @@ MemoryIndex.prototype.setTermIndexer = function(a) {
 MemoryIndex.prototype.getTermVectors = function(a, b) {
   var c = this._termVecs[JSON.stringify([a, b])] || [], e = this;
   return(new ArrayStream(c, function(a) {
-    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTerms:a.totalFieldTerms || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:e._docCount}
+    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTokens:a.totalFieldTokens || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:e._docCount}
   })).start()
 };
 exports.MemoryIndex = MemoryIndex;
 var DefaultSimilarity = function() {
 };
 DefaultSimilarity.prototype.norm = function(a) {
-  return a.documentBoost * a.fieldBoost * (1 / Math.sqrt(a.totalFieldTerms))
+  return a.documentBoost * a.fieldBoost * (1 / Math.sqrt(a.totalFieldTokens))
 };
 DefaultSimilarity.prototype.queryNorm = function(a) {
   return 1 / Math.sqrt(a.sumOfSquaredWeights)
@@ -448,7 +448,7 @@ function Searcher(a) {
 Searcher.prototype.similarity = new DefaultSimilarity;
 Searcher.prototype.search = function(a, b, c) {
   b = new TopDocumentsCollector(b, c);
-  a.score(this._index, this.similarity).pipe(b)
+  (new NormalizedQuery(a)).score(this._index, this.similarity).pipe(b)
 };
 exports.Searcher = Searcher;
 function TermQuery(a, b, c) {
@@ -464,7 +464,7 @@ TermQuery.prototype.score = function(a, b) {
   return c
 };
 TermQuery.prototype.extractTerms = function() {
-  return[this.term]
+  return[{term:this.term, field:this.field}]
 };
 function TermScorer(a, b) {
   Stream.call(this);
@@ -486,4 +486,35 @@ TermScorer.prototype.end = function(a) {
   this.destroy()
 };
 exports.TermQuery = TermQuery;
+function NormalizedQuery(a) {
+  this.query = a
+}
+NormalizedQuery.prototype.boost = 1;
+NormalizedQuery.prototype.score = function(a, b) {
+  var c = new NormalizedScorer(this, b);
+  this.query.score(a, b).pipe(c);
+  return c
+};
+NormalizedQuery.prototype.extractTerms = function() {
+  return this.query.extractTerms()
+};
+function NormalizedScorer(a, b) {
+  Stream.call(this);
+  this._query = a;
+  this._similarity = b
+}
+NormalizedScorer.prototype = Object.create(Stream.prototype);
+NormalizedScorer.prototype.readable = !0;
+NormalizedScorer.prototype.writable = !0;
+NormalizedScorer.prototype.write = function(a) {
+  var b = this._query.extractTerms();
+  a.score *= this._similarity.queryNorm(a) * this._similarity.coord(a.terms.length, b.length);
+  this.emit("data", a)
+};
+NormalizedScorer.prototype.end = function(a) {
+  typeof a !== "undefined" && this.write(a);
+  this.emit("end");
+  this.destroy()
+};
+exports.NormalizedQuery = NormalizedQuery;
 

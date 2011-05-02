@@ -40,7 +40,7 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 					termPositions : [key],
 					termOffsets : [key],  //FIXME
 					field : field,
-					totalFieldTerms : terms.length  //TODO: Is this unique or total?
+					totalFieldTokens : terms.length
 				});
 			} else {
 				//TODO: Optimize

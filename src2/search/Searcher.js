@@ -28,10 +28,8 @@ Searcher.prototype.similarity = new DefaultSimilarity();
 
 Searcher.prototype.search = function (query, max, callback) {
 	var collector = new TopDocumentsCollector(max, callback);
-	//var normQuery = new NormalizedQuery(query);
-	//normQuery.score(this._index, this.similarity).pipe(collector);
-	//FIXME:
-	query.score(this._index, this.similarity).pipe(collector);
+	var normQuery = new NormalizedQuery(query);
+	normQuery.score(this._index, this.similarity).pipe(collector);
 };
 
 
