@@ -86,6 +86,21 @@ if (typeof Array.remove !== "function") {
 	};
 }
 
+if (!Array.append) {
+	/**
+	 * @param {Array} arr1 The target array to modify
+	 * @param {Array} arr2 The array to append onto the target
+	 * @returns {Array} The modified array for chaining
+	 */
+	
+	Array.append = function (arr1, arr2) {
+		arr2 = arr2.slice(0);
+		arr2.unshift(arr1.length, 0);
+		arr1.splice.apply(arr1, arr2);
+		return arr1;
+	};
+}
+
 if (typeof Array.orderedInsert !== "function") {
 	/**
 	 * @param {Array} arr

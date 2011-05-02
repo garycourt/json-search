@@ -52,7 +52,7 @@ MemoryIndex.prototype.generateID = function () {
 
 MemoryIndex.prototype.addDocument = function (doc, id, callback) {
 	var termVecEnts, i, il, vecKey;
-	if (typeof id === "undefined" || typeof id === "null") {
+	if (typeof id === "undefined" || typeOf(id) === "null") {
 		id = this.generateID();
 	} else {
 		id = String(id);
@@ -63,7 +63,7 @@ MemoryIndex.prototype.addDocument = function (doc, id, callback) {
 	termVecEnts = this._termIndexer.index(doc);
 	
 	for (i = 0, il = termVecEnts.length; i < il; ++i) {
-		termVecEnts.documentID = id;
+		termVecEnts[i].documentID = id;
 		vecKey = JSON.stringify([termVecEnts[i].term, termVecEnts[i].field]);
 		if (!this._termVecs[vecKey]) {
 			this._termVecs[vecKey] = [ termVecEnts[i] ];

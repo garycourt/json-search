@@ -36,18 +36,26 @@ if(typeof Array.remove !== "function") {
     return!1
   }
 }
+if(!Array.append) {
+  Array.append = function(a, b) {
+    b = b.slice(0);
+    b.unshift(a.length, 0);
+    a.splice.apply(a, b);
+    return a
+  }
+}
 if(typeof Array.orderedInsert !== "function") {
   Array.orderedInsert = function(a, b, c) {
-    var d, f, g;
+    var e, d, f;
     if(a.length === 0) {
       a[0] = b
     }else {
-      d = 0;
-      f = a.length - 1;
-      for(g = Math.floor(f / 2);f - d > 0;) {
-        c(a[g], b) <= 0 ? d = g + 1 : f = g - 1, g = Math.round(d + (f - d) / 2)
+      e = 0;
+      d = a.length - 1;
+      for(f = Math.floor(d / 2);d - e > 0;) {
+        c(a[f], b) <= 0 ? e = f + 1 : d = f - 1, f = Math.round(e + (d - e) / 2)
       }
-      c(a[g], b) <= 0 ? a.splice(g + 1, 0, b) : a.splice(g, 0, b)
+      c(a[f], b) <= 0 ? a.splice(f + 1, 0, b) : a.splice(f, 0, b)
     }
   }
 }
@@ -96,8 +104,8 @@ try {
       return!0
     }else {
       if(Array.isArray(c)) {
-        for(var b = Array.prototype.slice.call(arguments, 1), c = c.slice(), d = 0, f = c.length;d < f;d++) {
-          c[d].apply(this, b)
+        for(var b = Array.prototype.slice.call(arguments, 1), c = c.slice(), e = 0, d = c.length;e < d;e++) {
+          c[e].apply(this, b)
         }
         return!0
       }else {
@@ -130,15 +138,15 @@ try {
     return this
   }, EventEmitter.prototype.on = EventEmitter.prototype.addListener, EventEmitter.prototype.once = function(a, b) {
     function c() {
-      d.removeListener(a, c);
+      e.removeListener(a, c);
       b.apply(this, arguments)
     }
     if("function" !== typeof b) {
       throw Error(".once only takes instances of Function");
     }
-    var d = this;
+    var e = this;
     c.listener = b;
-    d.on(a, c);
+    e.on(a, c);
     return this
   }, EventEmitter.prototype.removeListener = function(a, b) {
     if("function" !== typeof b) {
@@ -149,16 +157,16 @@ try {
     }
     var c = this._events[a];
     if(Array.isArray(c)) {
-      for(var d = -1, f = 0, g = c.length;f < g;f++) {
-        if(c[f] === b || c[f].listener && c[f].listener === b) {
-          d = f;
+      for(var e = -1, d = 0, f = c.length;d < f;d++) {
+        if(c[d] === b || c[d].listener && c[d].listener === b) {
+          e = d;
           break
         }
       }
-      if(d < 0) {
+      if(e < 0) {
         return this
       }
-      c.splice(d, 1);
+      c.splice(e, 1);
       c.length == 0 && delete this._events[a]
     }else {
       (c === b || c.listener && c.listener === b) && delete this._events[a]
@@ -189,57 +197,57 @@ Stream.prototype.readable = !1;
 Stream.prototype.writable = !1;
 Stream.prototype.pipe = function(a, b) {
   function c(b) {
-    a.writable && !1 === a.write(b) && e.pause()
+    a.writable && !1 === a.write(b) && g.pause()
   }
-  function d(b) {
+  function e(b) {
     a.emit("error", b);
-    e.destroy()
+    g.destroy()
+  }
+  function d() {
+    g.readable && g.resume()
   }
   function f() {
-    e.readable && e.resume()
-  }
-  function g() {
     var b = Stream.pipes.indexOf(a);
     Stream.pipes.splice(b, 1);
     Stream.pipes.indexOf(a) === -1 && a.end()
   }
   function i() {
-    e.pause()
+    g.pause()
   }
   function j() {
-    e.readable && e.resume()
+    g.readable && g.resume()
   }
   function h() {
-    e.removeListener("data", c);
-    e.removeListener("error", d);
-    a.removeListener("drain", f);
-    e.removeListener("end", g);
-    e.removeListener("close", g);
+    g.removeListener("data", c);
+    g.removeListener("error", e);
+    a.removeListener("drain", d);
+    g.removeListener("end", f);
+    g.removeListener("close", f);
     a.removeListener("pause", i);
     a.removeListener("resume", j);
-    e.removeListener("end", h);
-    e.removeListener("close", h);
-    e.removeListener("error", h);
+    g.removeListener("end", h);
+    g.removeListener("close", h);
+    g.removeListener("error", h);
     a.removeListener("end", h);
     a.removeListener("close", h);
-    a.emit("pipeDisconnected", e)
+    a.emit("pipeDisconnected", g)
   }
-  var e = this;
+  var g = this;
   Stream.pipes.push(a);
-  e.on("data", c);
-  e.on("error", d);
-  a.on("drain", f);
+  g.on("data", c);
+  g.on("error", e);
+  a.on("drain", d);
   if(!b || b.end !== !1) {
-    e.on("end", g), e.on("close", g)
+    g.on("end", f), g.on("close", f)
   }
   a.on("pause", i);
   a.on("resume", j);
-  e.on("end", h);
-  e.on("close", h);
-  e.on("error", h);
+  g.on("end", h);
+  g.on("close", h);
+  g.on("error", h);
   a.on("end", h);
   a.on("close", h);
-  a.emit("pipeConnected", e)
+  a.emit("pipeConnected", g)
 };
 Stream.prototype.pause = function() {
   this.emit("pause")
@@ -306,7 +314,37 @@ TopDocumentsCollector.prototype.write = function(a) {
 exports.TopDocumentsCollector = TopDocumentsCollector;
 function DefaultTermIndexer() {
 }
-DefaultTermIndexer.prototype.index = function() {
+DefaultTermIndexer.prototype.index = function(a, b) {
+  var c, e, d, f = [];
+  switch(typeOf(a)) {
+    case "null":
+    ;
+    case "boolean":
+    ;
+    case "number":
+      f[0] = {term:a, field:b};
+      break;
+    case "string":
+      c = a.replace(/[^\w\d]/g, " ").replace(/\s\s/g, " ").toLowerCase().split(" ");
+      e = {};
+      for(d = 0;d < c.length;++d) {
+        e[c[d]] ? (e[c[d]].termFrequency++, e[c[d]].termPositions.push(d), e[c[d]].termOffsets.push(d)) : e[c[d]] = {term:c[d], termFrequency:1, termPositions:[d], termOffsets:[d], field:b, totalFieldTerms:c.length}
+      }
+      for(d in e) {
+        e[d] !== O[d] && (f[f.length] = e[d])
+      }
+      break;
+    case "object":
+      for(d in a) {
+        a[d] !== O[d] && (f = f.concat(this.index(a[d], b ? b + "." + d : d)))
+      }
+      break;
+    case "array":
+      for(d = 0;d < a.length;++d) {
+        f = f.concat(this.index(a[d], b ? b + "." + d : String(d)))
+      }
+  }
+  return f
 };
 DefaultTermIndexer.prototype.toSource = function() {
 };
@@ -360,13 +398,13 @@ MemoryIndex.prototype.generateID = function() {
   return String(Math.random())
 };
 MemoryIndex.prototype.addDocument = function(a, b, c) {
-  var d, f, g, b = typeof b === "undefined" || typeof b === "null" ? this.generateID() : String(b);
+  var e, d, f, b = typeof b === "undefined" || typeOf(b) === "null" ? this.generateID() : String(b);
   this._docs[b] = a;
   this._docCount++;
   a = this._termIndexer.index(a);
-  d = 0;
-  for(f = a.length;d < f;++d) {
-    a.documentID = b, g = JSON.stringify([a[d].term, a[d].field]), this._termVecs[g] ? this._termVecs[g].push(a[d]) : this._termVecs[g] = [a[d]]
+  e = 0;
+  for(d = a.length;e < d;++e) {
+    a[e].documentID = b, f = JSON.stringify([a[e].term, a[e].field]), this._termVecs[f] ? this._termVecs[f].push(a[e]) : this._termVecs[f] = [a[e]]
   }
   c && c(null)
 };
@@ -377,9 +415,9 @@ MemoryIndex.prototype.setTermIndexer = function(a) {
   this._termIndexer = a
 };
 MemoryIndex.prototype.getTermVectors = function(a, b) {
-  var c = this._termVecs[JSON.stringify([a, b])] || [];
+  var c = this._termVecs[JSON.stringify([a, b])] || [], e = this;
   return(new ArrayStream(c, function(a) {
-    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTerms:a.totalFieldTerms || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:!0}
+    return{term:a.term, termFrequency:a.termFrequency || 1, termPositions:a.termPositions || [0], termOffsets:a.termOffsets || [0], field:a.field || null, fieldBoost:a.fieldBoost || 1, totalFieldTerms:a.totalFieldTerms || 1, documentBoost:a.fieldBoost || 1, documentID:a.documentID, documentFrequency:c.length, totalDocuments:e._docCount}
   })).start()
 };
 exports.MemoryIndex = MemoryIndex;
