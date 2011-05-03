@@ -1,4 +1,4 @@
-# Search.js Design Document
+# JSON Search Design Document
 
 ## Things needed from an Index
 
@@ -76,53 +76,3 @@ CouchDB should have the following maps/reduces:
 
 *	For each term `t`, get inverted document that contain `t` (in field `f`).
 *	Get total number of documents in index (can be cached for performance).
-
-## Code Structure
-
-*	Interface: Query
-	
-	Keeps track of Queries/Terms, Boost, and other attributes
-	.createScorer() -> Scorer
-
-*	Interface: InputStream
-	.start(outputStream)
-	.push(data)
-	.end(outputStream, [error])
-
-*	Interface: OutputStream
-	.addOutput(inputStream)
-	.removeOutput(inputStream)
-	.pause()
-	.resume()
-	.destroy()
-
-*	Pipe implements InputStream, OutputStream
-	Data written to the InputStream API is pushed to the OutputStream API
-
-*	QueuePipe extends Pipe
-	Pausing this pipe will queue up the data
-
-*	Scorer extends Pipe
-	
-	Used by Searcher/Index, filters and applys ranks to documents
-
-*	Collector implements InputStream
-
-*	TopCollector extends Collector
-	
-## Searching Process
-
-Searcher.prototype.search = function (query, ntop, callback) {
-	var collector = new TopCollector(ntop, callback);
-	var scorer = query.createScorer(collector);
-	scorer.getDocuments(this.index);
-};
-
-Scorer.prototype.getDocuments = function (index) {
-	index.getDocumentsByTerm(this.term, this.field, this);
-};
-
-Scorer.prototype.push = function (doc) {
-	scoredDoc.score = doMathHere;
-	this.output.push(doc);
-};
