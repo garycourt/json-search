@@ -11,12 +11,12 @@ function Query() {};
 Query.prototype.boost;
 
 /**
- * @param {Index} index
  * @param {Similarity} similarity
+ * @param {Index} index
  * @return {ReadableStream}
  */
 
-Query.prototype.score = function (index, similarity) {};
+Query.prototype.score = function (similarity, index) {};
 
 /**
  * @return {Array.<TermVectorEntry>}

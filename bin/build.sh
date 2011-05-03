@@ -3,7 +3,7 @@
 ROOT_DIR="../"
 SRC_DIR=${ROOT_DIR}"src/"
 DIST_DIR=${ROOT_DIR}"dist/"
-ALL_LIST=( ${SRC_DIR}"common.js" ${SRC_DIR}"util/EventEmitter.js" ${SRC_DIR}"util/Stream.js" ${SRC_DIR}"util/Collector.js" ${SRC_DIR}"search/DocumentTerms.js" ${SRC_DIR}"search/TopDocumentsCollector.js" ${SRC_DIR}"index/DefaultTermIndexer.js" ${SRC_DIR}"util/ArrayStream.js" ${SRC_DIR}"index/MemoryIndex.js" ${SRC_DIR}"search/DefaultSimilarity.js" ${SRC_DIR}"search/Searcher.js" ${SRC_DIR}"search/TermQuery.js" ${SRC_DIR}"search/NormalizedQuery.js" )
+ALL_LIST=( ${SRC_DIR}"common.js" ${SRC_DIR}"util/EventEmitter.js" ${SRC_DIR}"util/Stream.js" ${SRC_DIR}"util/Collector.js" ${SRC_DIR}"search/DocumentTerms.js" ${SRC_DIR}"search/TopDocumentsCollector.js" ${SRC_DIR}"index/DefaultTermIndexer.js" ${SRC_DIR}"util/ArrayStream.js" ${SRC_DIR}"index/MemoryIndex.js" ${SRC_DIR}"search/DefaultSimilarity.js" ${SRC_DIR}"search/Searcher.js" ${SRC_DIR}"search/TermQuery.js" ${SRC_DIR}"search/NormalizedQuery.js" ${SRC_DIR}"search/BooleanClause.js" ${SRC_DIR}"search/BooleanQuery.js" )
 ALL_FILE=${DIST_DIR}"all.js"
 EXTERN_LIST=( ${SRC_DIR}"interface/typedefs.js" ${SRC_DIR}"interface/Emitter.js" ${SRC_DIR}"interface/ReadableStream.js" ${SRC_DIR}"interface/WritableStream.js" ${SRC_DIR}"interface/TermVectorEntry.js" ${SRC_DIR}"interface/TermVector.js" ${SRC_DIR}"interface/Similarity.js" ${SRC_DIR}"interface/TermIndexer.js" ${SRC_DIR}"interface/Index.js" ${SRC_DIR}"interface/Query.js" )
 

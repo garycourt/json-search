@@ -448,7 +448,7 @@ function Searcher(a) {
 Searcher.prototype.similarity = new DefaultSimilarity;
 Searcher.prototype.search = function(a, b, c) {
   b = new TopDocumentsCollector(b, c);
-  (new NormalizedQuery(a)).score(this._index, this.similarity).pipe(b)
+  (new NormalizedQuery(a)).score(this.similarity, this._index).pipe(b)
 };
 exports.Searcher = Searcher;
 function TermQuery(a, b, c) {
@@ -459,8 +459,8 @@ function TermQuery(a, b, c) {
 TermQuery.prototype.field = null;
 TermQuery.prototype.boost = 1;
 TermQuery.prototype.score = function(a, b) {
-  var c = new TermScorer(this, b);
-  a.getTermVectors(this.term, this.field).pipe(c);
+  var c = new TermScorer(this, a);
+  b.getTermVectors(this.term, this.field).pipe(c);
   return c
 };
 TermQuery.prototype.extractTerms = function() {
@@ -468,7 +468,7 @@ TermQuery.prototype.extractTerms = function() {
 };
 function TermScorer(a, b) {
   Stream.call(this);
-  this._query = a;
+  this._boost = a.boost;
   this._similarity = b
 }
 TermScorer.prototype = Object.create(Stream.prototype);
@@ -476,8 +476,8 @@ TermScorer.prototype.readable = !0;
 TermScorer.prototype.writable = !0;
 TermScorer.prototype.write = function(a) {
   var b = this._similarity, c = new DocumentTerms(a.documentID, [a]);
-  c.sumOfSquaredWeights = Math.pow(b.idf(a) * this._query.boost, 2);
-  c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._query.boost * b.norm(a);
+  c.sumOfSquaredWeights = Math.pow(b.idf(a) * this._boost, 2);
+  c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._boost * b.norm(a);
   this.emit("data", c)
 };
 TermScorer.prototype.end = function(a) {
@@ -491,7 +491,7 @@ function NormalizedQuery(a) {
 }
 NormalizedQuery.prototype.boost = 1;
 NormalizedQuery.prototype.score = function(a, b) {
-  var c = new NormalizedScorer(this, b);
+  var c = new NormalizedScorer(this, a);
   this.query.score(a, b).pipe(c);
   return c
 };
@@ -500,7 +500,6 @@ NormalizedQuery.prototype.extractTerms = function() {
 };
 function NormalizedScorer(a, b) {
   Stream.call(this);
-  this._query = a;
   this._similarity = b;
   this._maxOverlap = a.extractTerms().length
 }
@@ -517,4 +516,43 @@ NormalizedScorer.prototype.end = function(a) {
   this.destroy()
 };
 exports.NormalizedQuery = NormalizedQuery;
+function BooleanClause(a, b) {
+  this.query = a;
+  this.occur = b || Occur.SHOULD
+}
+var Occur = {MUST:1, SHOULD:0, MUST_NOT:-1};
+exports.BooleanQuery = BooleanQuery;
+exports.Occur = Occur;
+function BooleanQuery(a, b) {
+  this.clauses = a || [];
+  this.minimumOptionalMatches = b || 0
+}
+BooleanQuery.prototype.minimumOptionalMatches = 0;
+BooleanQuery.prototype.boost = 1;
+BooleanQuery.prototype.score = function(a, b) {
+  return new BooleanScorer(this, a, b)
+};
+BooleanQuery.prototype.extractTerms = function() {
+  var a, b, c = [];
+  a = 0;
+  for(b = this.clauses.length;a < b;++a) {
+    c = c.concat(this.clauses[a].query.extractTerms())
+  }
+  return c
+};
+function BooleanScorer(a, b, c) {
+  this._query = a;
+  this._similarity = b;
+  this._index = c
+}
+BooleanScorer.prototype.readable = !0;
+BooleanScorer.prototype.pause = function() {
+};
+BooleanScorer.prototype.resume = function() {
+};
+BooleanScorer.prototype.destroy = function() {
+};
+BooleanScorer.prototype.destroySoon = function() {
+};
+exports.BooleanQuery = BooleanQuery;
 
