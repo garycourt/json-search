@@ -55,6 +55,7 @@ function NormalizedScorer(query, similarity) {
 	Stream.call(this);
 	this._query = query;
 	this._similarity = similarity;
+	this._maxOverlap = query.extractTerms().length;
 }
 
 NormalizedScorer.prototype = Object.create(Stream.prototype);
@@ -73,6 +74,13 @@ NormalizedScorer.prototype._query;
 
 NormalizedScorer.prototype._similarity;
 
+/**
+ * @protected
+ * @type {number}
+ */
+
+NormalizedScorer.prototype._maxOverlap;
+
 NormalizedScorer.prototype.readable = true;
 
 NormalizedScorer.prototype.writable = true;
@@ -82,8 +90,7 @@ NormalizedScorer.prototype.writable = true;
  */
 
 NormalizedScorer.prototype.write = function (doc) {
-	var queryTerms = this._query.extractTerms();
-	doc.score *= this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, queryTerms.length);
+	doc.score *= this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
 	this.emit('data', doc);
 };
 

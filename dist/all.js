@@ -501,14 +501,14 @@ NormalizedQuery.prototype.extractTerms = function() {
 function NormalizedScorer(a, b) {
   Stream.call(this);
   this._query = a;
-  this._similarity = b
+  this._similarity = b;
+  this._maxOverlap = a.extractTerms().length
 }
 NormalizedScorer.prototype = Object.create(Stream.prototype);
 NormalizedScorer.prototype.readable = !0;
 NormalizedScorer.prototype.writable = !0;
 NormalizedScorer.prototype.write = function(a) {
-  var b = this._query.extractTerms();
-  a.score *= this._similarity.queryNorm(a) * this._similarity.coord(a.terms.length, b.length);
+  a.score *= this._similarity.queryNorm(a) * this._similarity.coord(a.terms.length, this._maxOverlap);
   this.emit("data", a)
 };
 NormalizedScorer.prototype.end = function(a) {
