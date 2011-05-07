@@ -266,7 +266,7 @@ function Collector(a) {
   var b = this;
   Stream.call(this);
   this.collection = [];
-  this.callback = a;
+  this.callback = a || null;
   this.on("error", function(a) {
     if(b.callback) {
       b.callback(a), b.callback = null
@@ -291,6 +291,40 @@ Collector.prototype.destroy = function() {
 };
 Collector.prototype.destroySoon = Collector.prototype.destroy;
 exports.Collector = Collector;
+function SingleCollector(a) {
+  var b = this;
+  Stream.call(this);
+  this.callback = a || null;
+  this.on("error", function(a) {
+    if(b.callback) {
+      b.callback(a), b.callback = null
+    }
+  })
+}
+SingleCollector.prototype = Object.create(Stream.prototype);
+SingleCollector.prototype.callback = null;
+SingleCollector.prototype.writable = !0;
+SingleCollector.prototype.write = function(a) {
+  if(typeof this.data !== "undefined") {
+    throw Error("Stream is full");
+  }
+  this.data = a;
+  this.callback && this.callback(null, a);
+  return this.data === "undefined"
+};
+SingleCollector.prototype.drain = function() {
+  this.data = void 0;
+  this.emit("drain")
+};
+SingleCollector.prototype.end = function(a) {
+  typeof a !== "undefined" && this.write(a);
+  this.destroy()
+};
+SingleCollector.prototype.destroy = function() {
+  this.callback = null
+};
+SingleCollector.prototype.destroySoon = SingleCollector.prototype.destroy;
+exports.SingleCollector = SingleCollector;
 function DocumentTerms(a, b) {
   this.id = a;
   this.terms = b || []
@@ -543,9 +577,22 @@ BooleanQuery.prototype.extractTerms = function() {
 function BooleanScorer(a, b, c) {
   this._query = a;
   this._similarity = b;
-  this._index = c
+  this._index = c;
+  this._inputs = [];
+  this.addInputs(a.clauses)
 }
 BooleanScorer.prototype.readable = !0;
+BooleanScorer.prototype.addInputs = function(a) {
+  var b = this, c, e, d, f;
+  c = 0;
+  for(e = a.length;c < e;++c) {
+    d = a[c], f = new SingleCollector(function(a) {
+      a ? b.emit("error", a) : b.process()
+    }), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(new BooleanClauseStream(d.query, d.occur, f))
+  }
+};
+BooleanScorer.prototype.process = function() {
+};
 BooleanScorer.prototype.pause = function() {
 };
 BooleanScorer.prototype.resume = function() {
@@ -554,5 +601,11 @@ BooleanScorer.prototype.destroy = function() {
 };
 BooleanScorer.prototype.destroySoon = function() {
 };
+function BooleanClauseStream(a, b, c) {
+  this.query = a;
+  this.occur = b;
+  this.collector = c
+}
+BooleanClauseStream.prototype = Object.create(BooleanClause.prototype);
 exports.BooleanQuery = BooleanQuery;
 

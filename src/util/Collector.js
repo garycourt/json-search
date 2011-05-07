@@ -2,14 +2,14 @@
  * @constructor
  * @extends {Stream}
  * @implements {WritableStream}
- * @param {function(PossibleError, Array=)} callback
+ * @param {function(PossibleError, Array=)} [callback]
  */
 
 function Collector(callback) {
 	var self = this;
 	Stream.call(this);
 	this.collection = [];
-	this.callback = callback;
+	this.callback = callback || null;
 	
 	this.on('error', function (err) {
 		if (self.callback) {
