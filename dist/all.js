@@ -235,7 +235,9 @@ Stream.prototype.pipe = function(a, b) {
   var g = this;
   Stream.pipes.push(a);
   g.on("data", c);
-  g.on("error", e);
+  if(!b || b.error !== !1) {
+    g.on("error", e)
+  }
   a.on("drain", d);
   if(!b || b.end !== !1) {
     g.on("end", f), g.on("close", f)
@@ -291,25 +293,16 @@ Collector.prototype.destroy = function() {
 };
 Collector.prototype.destroySoon = Collector.prototype.destroy;
 exports.Collector = Collector;
-function SingleCollector(a) {
-  var b = this;
-  Stream.call(this);
-  this.callback = a || null;
-  this.on("error", function(a) {
-    if(b.callback) {
-      b.callback(a), b.callback = null
-    }
-  })
+function SingleCollector() {
+  Stream.call(this)
 }
 SingleCollector.prototype = Object.create(Stream.prototype);
-SingleCollector.prototype.callback = null;
 SingleCollector.prototype.writable = !0;
 SingleCollector.prototype.write = function(a) {
   if(typeof this.data !== "undefined") {
     throw Error("Stream is full");
   }
   this.data = a;
-  this.callback && this.callback(null, a);
   return this.data === "undefined"
 };
 SingleCollector.prototype.drain = function() {
@@ -320,10 +313,6 @@ SingleCollector.prototype.end = function(a) {
   typeof a !== "undefined" && this.write(a);
   this.destroy()
 };
-SingleCollector.prototype.destroy = function() {
-  this.callback = null
-};
-SingleCollector.prototype.destroySoon = SingleCollector.prototype.destroy;
 exports.SingleCollector = SingleCollector;
 function DocumentTerms(a, b) {
   this.id = a;
@@ -583,15 +572,19 @@ function BooleanScorer(a, b, c) {
 }
 BooleanScorer.prototype.readable = !0;
 BooleanScorer.prototype.addInputs = function(a) {
-  var b = this, c, e, d, f;
-  c = 0;
-  for(e = a.length;c < e;++c) {
-    d = a[c], f = new SingleCollector(function(a) {
-      a ? b.emit("error", a) : b.process()
-    }), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(new BooleanClauseStream(d.query, d.occur, f))
+  var b, c, e, d, f;
+  b = 0;
+  for(c = a.length;b < c;++b) {
+    e = a[b], d = new SingleCollector, f = new BooleanClauseStream(e.query, e.occur, d), d.pipe(this, {end:!1}), e.query.score(this._similarity, this._index).pipe(d), this._inputs.push(f), e = function(a, b) {
+      return function() {
+        Array.remove(a, b)
+      }
+    }(this._inputs, f), d.on("end", e), d.on("close", e)
   }
 };
-BooleanScorer.prototype.process = function() {
+BooleanScorer.prototype.write = function() {
+};
+BooleanScorer.prototype.end = function() {
 };
 BooleanScorer.prototype.pause = function() {
 };

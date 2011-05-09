@@ -55,6 +55,7 @@ BooleanQuery.prototype.extractTerms = function () {
  * @constructor
  * @extends Stream
  * @implements ReadableStream
+ * @implements WritableStream
  * @param {BooleanQuery} query
  * @param {Similarity} similarity
  * @param {Index} index
@@ -108,25 +109,36 @@ BooleanScorer.prototype.readable = true;
  */
 
 BooleanScorer.prototype.addInputs = function (clauses) {
-	var self = this, x, xl, clause, collector;
+	var self = this, x, xl, clause, collector, bcs, remover;
 	for (x = 0, xl = clauses.length; x < xl; ++x) {
 		clause = clauses[x];
-		collector = new SingleCollector(function (err) {
-			if (err) {
-				self.emit('error', err);
-			} else {
-				self.process();
-			}
-		});
+		collector = new SingleCollector();
+		bcs = new BooleanClauseStream(clause.query, clause.occur, collector);
+		
+		collector.pipe(this, {end : false});
 		clause.query.score(this._similarity, this._index).pipe(collector);
-		this._inputs.push(new BooleanClauseStream(clause.query, clause.occur, collector));
+		this._inputs.push(bcs);
+		
+		remover = (function (a, b) {
+			return function () {
+				Array.remove(a, b);
+			}
+		})(this._inputs, bcs);
+		
+		collector.on('end', remover);
+		collector.on('close', remover);
 	}
 };
 
 /**
  */
 
-BooleanScorer.prototype.process = function () {};  //TODO
+BooleanScorer.prototype.write = function () {};  //TODO
+
+/**
+ */
+
+BooleanScorer.prototype.end = function () {};  //TODO
 
 /**
  */

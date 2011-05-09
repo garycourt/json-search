@@ -75,7 +75,9 @@ Stream.prototype.pipe = function (dest, options) {
 		source.destroy();
 	};
 	
-	source.on('error', onerror);
+	if (!options || options.error !== false) {
+		source.on('error', onerror);
+	}
 
 	function ondrain() {
 		if (source.readable) source.resume();

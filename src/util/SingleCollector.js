@@ -1,21 +1,12 @@
 /**
  * @constructor
  * @extends {Stream}
+ * @implements {ReadableStream}
  * @implements {WritableStream}
- * @param {function(PossibleError, Array=)} [callback]
  */
 
-function SingleCollector(callback) {
-	var self = this;
+function SingleCollector() {
 	Stream.call(this);
-	this.callback = callback || null;
-	
-	this.on('error', function (err) {
-		if (self.callback) {
-			self.callback(err);
-			self.callback = null;
-		}
-	});
 };
 
 SingleCollector.prototype = Object.create(Stream.prototype);
@@ -27,19 +18,13 @@ SingleCollector.prototype = Object.create(Stream.prototype);
 SingleCollector.prototype.data;
 
 /**
- * @type {function(PossibleError, Array=)|null}
- */
-
-SingleCollector.prototype.callback = null;
-
-/**
  * @type {boolean}
  */
 
 SingleCollector.prototype.writable = true;
 
 /**
- * @param {?} data
+ * @param {*} data
  * @return {boolean}
  */
 
@@ -49,9 +34,6 @@ SingleCollector.prototype.write = function (data) {
 	}
 	
 	this.data = data;
-	if (this.callback) {
-		this.callback(null, data);
-	}
 	return this.data === "undefined";
 };
 
@@ -61,7 +43,7 @@ SingleCollector.prototype.drain = function () {
 };
 
 /**
- * @param {?} [data]
+ * @param {*} [data]
  */
 
 SingleCollector.prototype.end = function (data) {
@@ -70,18 +52,6 @@ SingleCollector.prototype.end = function (data) {
 	}
 	this.destroy();
 };
-
-/**
- */
-
-SingleCollector.prototype.destroy = function () {
-	this.callback = null;
-};
-
-/**
- */
-
-SingleCollector.prototype.destroySoon = SingleCollector.prototype.destroy;
 
 
 exports.SingleCollector = SingleCollector;
