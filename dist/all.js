@@ -67,12 +67,7 @@ try {
   }
   EventEmitter = require("events").EventEmitter
 }catch(e$$5) {
-  EventEmitter.DEFAULT_MAX_LISTENERS = 10, EventEmitter.prototype.setMaxListeners = function(a) {
-    if(!this._events) {
-      this._events = {}
-    }
-    this._events.maxListeners = a
-  }, EventEmitter.prototype.emit = function(a, b) {
+  EventEmitter.prototype.emit = function(a, b) {
     if(a === "error" && (!this._events || !this._events.error || Array.isArray(this._events.error) && !this._events.error.length)) {
       if(arguments[1] instanceof Error) {
         throw arguments[1];
@@ -120,21 +115,7 @@ try {
       this._events = {}
     }
     this.emit("newListener", a, b);
-    if(this._events[a]) {
-      if(Array.isArray(this._events[a])) {
-        if(!this._events[a].warned) {
-          var c;
-          if((c = this._events.maxListeners !== void 0 ? this._events.maxListeners : EventEmitter.DEFAULT_MAX_LISTENERS) && c > 0 && this._events[a].length > c) {
-            this._events[a].warned = !0
-          }
-        }
-        this._events[a].push(b)
-      }else {
-        this._events[a] = [this._events[a], b]
-      }
-    }else {
-      this._events[a] = b
-    }
+    this._events[a] ? Array.isArray(this._events[a]) ? this._events[a].push(b) : this._events[a] = [this._events[a], b] : this._events[a] = b;
     return this
   }, EventEmitter.prototype.on = EventEmitter.prototype.addListener, EventEmitter.prototype.once = function(a, b) {
     function c() {
@@ -233,14 +214,13 @@ Stream.prototype.pipe = function(a, b) {
     a.emit("pipeDisconnected", g)
   }
   var g = this;
-  Stream.pipes.push(a);
   g.on("data", c);
   if(!b || b.error !== !1) {
     g.on("error", e)
   }
   a.on("drain", d);
   if(!b || b.end !== !1) {
-    g.on("end", f), g.on("close", f)
+    Stream.pipes.push(a), g.on("end", f), g.on("close", f)
   }
   a.on("pause", h);
   a.on("resume", j);
@@ -297,21 +277,26 @@ function SingleCollector() {
   Stream.call(this)
 }
 SingleCollector.prototype = Object.create(Stream.prototype);
+SingleCollector.prototype._writing = !1;
+SingleCollector.prototype.readable = !0;
 SingleCollector.prototype.writable = !0;
 SingleCollector.prototype.write = function(a) {
   if(typeof this.data !== "undefined") {
     throw Error("Stream is full");
   }
   this.data = a;
+  this._writing = !0;
   this.emit("data", a);
-  return this.data === "undefined"
+  this._writing = !1;
+  return typeof this.data === "undefined"
 };
 SingleCollector.prototype.drain = function() {
   this.data = void 0;
-  this.emit("drain")
+  this._writing || this.emit("drain")
 };
 SingleCollector.prototype.end = function(a) {
   typeof a !== "undefined" && this.write(a);
+  this.emit("end");
   this.destroy()
 };
 exports.SingleCollector = SingleCollector;
@@ -376,6 +361,7 @@ DefaultTermIndexer.prototype.toSource = function() {
 };
 exports.DefaultTermIndexer = DefaultTermIndexer;
 function ArrayStream(a, b) {
+  Stream.call(this);
   this._entries = a;
   this._index = 0;
   this._mapper = b
@@ -577,6 +563,7 @@ BooleanQuery.prototype.extractTerms = function() {
   return c
 };
 function BooleanScorer(a, b, c) {
+  Stream.call(this);
   this._query = a;
   this._similarity = b;
   this._index = c;
@@ -594,6 +581,8 @@ BooleanScorer.prototype.addInputs = function(a) {
   for(e = a.length;c < e;++c) {
     d = a[c], f = new SingleCollector, h = new BooleanClauseStream(d.query, d.occur, f), f.pipe(this, {end:!1}), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(h), this._collectorCount++, d = function(a) {
       return function() {
+        a.collector.removeListener("end", arguments.callee);
+        a.collector.removeListener("close", arguments.callee);
         a.collector = null;
         b._collectorCount--;
         if(!b._collectorCount || a.occur === Occur.MUST) {

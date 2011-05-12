@@ -56,8 +56,6 @@ Stream.prototype.writable = false;
 Stream.prototype.pipe = function (dest, options) {
 	var source = this;
 
-	Stream.pipes.push(dest);
-
 	/**
 	 * @param {?} chunk
 	 */
@@ -100,6 +98,8 @@ Stream.prototype.pipe = function (dest, options) {
 	}
 
 	if (!options || options.end !== false) {
+		Stream.pipes.push(dest);
+		
 		source.on('end', onend);
 		source.on('close', onend);
 	}

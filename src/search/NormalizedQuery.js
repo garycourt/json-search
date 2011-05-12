@@ -44,9 +44,9 @@ NormalizedQuery.prototype.extractTerms = function () {
 /**
  * @protected
  * @constructor
- * @extends Stream
- * @implements ReadableStream
- * @implements WritableStream
+ * @extends {Stream}
+ * @implements {ReadableStream}
+ * @implements {WritableStream}
  * @param {NormalizedQuery} query
  * @param {Similarity} similarity
  */

@@ -53,15 +53,16 @@ BooleanQuery.prototype.extractTerms = function () {
 /**
  * @protected
  * @constructor
- * @extends Stream
- * @implements ReadableStream
- * @implements WritableStream
+ * @extends {Stream}
+ * @implements {ReadableStream}
+ * @implements {WritableStream}
  * @param {BooleanQuery} query
  * @param {Similarity} similarity
  * @param {Index} index
  */
 
 function BooleanScorer(query, similarity, index) {
+	Stream.call(this);
 	this._query = query;
 	this._similarity = similarity;
 	this._index = index;
@@ -145,6 +146,8 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 		
 		remover = (function (b) {
 			return function () {
+				b.collector.removeListener('end', arguments.callee);
+				b.collector.removeListener('close', arguments.callee);
 				b.collector = null;
 				self._collectorCount--;
 				

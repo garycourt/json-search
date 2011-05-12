@@ -12,10 +12,23 @@ function SingleCollector() {
 SingleCollector.prototype = Object.create(Stream.prototype);
 
 /**
+ * @private
+ * @type {boolean}
+ */
+
+SingleCollector.prototype._writing = false;
+
+/**
  * @type {*}
  */
 
 SingleCollector.prototype.data;
+
+/**
+ * @type {boolean}
+ */
+
+SingleCollector.prototype.readable = true;
 
 /**
  * @type {boolean}
@@ -34,13 +47,17 @@ SingleCollector.prototype.write = function (data) {
 	}
 	
 	this.data = data;
+	this._writing = true;
 	this.emit('data', data);
-	return this.data === "undefined";
+	this._writing = false;
+	return (typeof this.data === "undefined");
 };
 
 SingleCollector.prototype.drain = function () {
 	this.data = undefined;
-	this.emit('drain');
+	if (!this._writing) {
+		this.emit('drain');
+	}
 };
 
 /**
@@ -51,6 +68,7 @@ SingleCollector.prototype.end = function (data) {
 	if (typeof data !== "undefined") {
 		this.write(data);
 	}
+	this.emit('end');
 	this.destroy();
 };
 

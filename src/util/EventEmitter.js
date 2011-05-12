@@ -41,33 +41,11 @@ try {
 	// USE OR OTHER DEALINGS IN THE SOFTWARE.
 	
 	/**
-	 * By default EventEmitters will print a warning if more than 
-	 * 10 listeners are added to it. This is a useful default which
-	 * helps finding memory leaks.
-	 * 
-	 * Obviously not all Emitters should be limited to 10. This function allows
-	 * that to be increased. Set to zero for unlimited.
-	 * 
-	 * @const
-	 */
-	
-	EventEmitter.DEFAULT_MAX_LISTENERS = 10;
-	
-	/**
 	 * @private
 	 * @type {Object}
 	 */
 	
 	EventEmitter.prototype._events;
-	
-	/**
-	 * @param {number} n
-	 */
-	
-	EventEmitter.prototype.setMaxListeners = function (n) {
-		if (!this._events) this._events = {};
-		this._events.maxListeners = n;
-	};
 	
 	/**
 	 * @param {string} type
@@ -145,23 +123,6 @@ try {
 			// Optimize the case of one listener. Don't need the extra array object.
 			this._events[type] = listener;
 		} else if (Array.isArray(this._events[type])) {
-	
-			// Check for listener leak
-			if (!this._events[type].warned) {
-				var m;
-				if (this._events.maxListeners !== undefined) {
-					m = this._events.maxListeners;
-				} else {
-					m = EventEmitter.DEFAULT_MAX_LISTENERS;
-				}
-	
-				if (m && m > 0 && this._events[type].length > m) {
-					this._events[type].warned = true;
-					//console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
-					//console.trace();
-				}
-			}
-	
 			// If we've already got an array, just append.
 			this._events[type].push(listener);
 		} else {

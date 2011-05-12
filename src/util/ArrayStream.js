@@ -7,6 +7,7 @@
  */
 
 function ArrayStream(entries, mapper) {
+	Stream.call(this);
 	this._entries = entries;
 	this._index = 0;
 	this._mapper = mapper;
