@@ -102,6 +102,13 @@ BooleanScorer.prototype._inputs;
 
 /**
  * @protected
+ * @type {number}
+ */
+
+BooleanScorer.prototype._collectorCount = 0;
+
+/**
+ * @protected
  * @type {boolean}
  */
 
@@ -132,13 +139,17 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 		
 		collector.pipe(this, {end : false});
 		clause.query.score(this._similarity, this._index).pipe(collector);
+		
 		this._inputs.push(bcs);
+		this._collectorCount++;
 		
 		remover = (function (b) {
 			return function () {
-				Array.remove(self._inputs, b);
+				b.collector = null;
+				self._collectorCount--;
 				
-				if (!self._inputs.length) {
+				if (!self._collectorCount || b.occur === Occur.MUST) {
+					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
 				}
 			}
@@ -162,13 +173,17 @@ BooleanScorer.prototype.write = function () {
 	
 	//collect all documents, find lowest document ID
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
-		docs[x] = this._inputs[x].collector.data;
-		
-		if (typeof docs[x] === "undefined") {
-			return true;  //not all collectors are full
+		if (this._inputs[x].collector) {
+			docs[x] = this._inputs[x].collector.data;
+			
+			if (typeof docs[x] === "undefined") {
+				return true;  //not all collectors are full
+			}
+		} else {
+			docs[x] = undefined;
 		}
 		
-		if (x > 0 && (docs[x].id < docs[lowestIndex].id)) {
+		if (x > 0 && (!docs[lowestIndex] || (docs[x] && docs[x].id < docs[lowestIndex].id))) {
 			lowestIndex = x;
 		}
 	}
@@ -178,7 +193,7 @@ BooleanScorer.prototype.write = function () {
 	
 	//perform boolean logic
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
-		if (docs[x].id === lowestID) {
+		if (docs[x] && docs[x].id === lowestID) {
 			if (this._inputs[x].occur === Occur.MUST_NOT) {
 				match = false;
 				break;  //this document has a forbidden term
@@ -204,7 +219,7 @@ BooleanScorer.prototype.write = function () {
 	
 	//remove documents with lowestID
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
-		if (docs[x].id === lowestID) {
+		if (docs[x] && docs[x].id === lowestID) {
 			this._inputs[x].collector.drain();
 		}
 	}
@@ -216,8 +231,9 @@ BooleanScorer.prototype.write = function () {
  */
 
 BooleanScorer.prototype.end = function () {
-	if (this._inputs.length) {
-		throw new Error("BooleanScorer#end called while there are still inputs attached!");
+	//sanity check
+	if (this._collectorCount) {
+		throw new Error("BooleanScorer#end called while there are still collectors attached!");
 	}
 	
 	this.emit('end');
@@ -245,7 +261,9 @@ BooleanScorer.prototype.resume = function () {
 BooleanScorer.prototype.destroy = function () {
 	var x, xl;
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
-		this._inputs[x].collector.destroy();
+		if (this._inputs[x].collector) {
+			this._inputs[x].collector.destroy();
+		}
 	}
 	Stream.prototype.destroy.call(this);
 };

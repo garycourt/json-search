@@ -389,7 +389,7 @@ ArrayStream.prototype._run = function() {
   for(this._started = !0;!this._paused && this._index < this._entries.length;) {
     a = this._entries[this._index++], this._mapper && (a = this._mapper(a)), this.emit("data", a)
   }
-  this._index >= this._entries.length && (this.emit("end"), this.destroy())
+  !this._paused && this._index >= this._entries.length && (this.emit("end"), this.destroy())
 };
 ArrayStream.prototype.start = function() {
   var a = this;
@@ -584,6 +584,7 @@ function BooleanScorer(a, b, c) {
   this.addInputs(a.clauses)
 }
 BooleanScorer.prototype = Object.create(Stream.prototype);
+BooleanScorer.prototype._collectorCount = 0;
 BooleanScorer.prototype._paused = !1;
 BooleanScorer.prototype.readable = !0;
 BooleanScorer.prototype.writable = !0;
@@ -591,10 +592,13 @@ BooleanScorer.prototype.addInputs = function(a) {
   var b = this, c, e, d, f, h;
   c = 0;
   for(e = a.length;c < e;++c) {
-    d = a[c], f = new SingleCollector, h = new BooleanClauseStream(d.query, d.occur, f), f.pipe(this, {end:!1}), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(h), d = function(a) {
+    d = a[c], f = new SingleCollector, h = new BooleanClauseStream(d.query, d.occur, f), f.pipe(this, {end:!1}), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(h), this._collectorCount++, d = function(a) {
       return function() {
-        Array.remove(b._inputs, a);
-        b._inputs.length || b.end()
+        a.collector = null;
+        b._collectorCount--;
+        if(!b._collectorCount || a.occur === Occur.MUST) {
+          b._collectorCount = 0, b.end()
+        }
       }
     }(h), f.on("end", d), f.on("close", d)
   }
@@ -606,17 +610,22 @@ BooleanScorer.prototype.write = function() {
   }
   a = 0;
   for(b = this._inputs.length;a < b;++a) {
-    c[a] = this._inputs[a].collector.data;
-    if(typeof c[a] === "undefined") {
-      return!0
+    if(this._inputs[a].collector) {
+      if(c[a] = this._inputs[a].collector.data, typeof c[a] === "undefined") {
+        return!0
+      }
+    }else {
+      c[a] = void 0
     }
-    a > 0 && c[a].id < c[e].id && (e = a)
+    if(a > 0 && (!c[e] || c[a] && c[a].id < c[e].id)) {
+      e = a
+    }
   }
   e = c[e].id;
   h = new DocumentTerms(e);
   a = 0;
   for(b = this._inputs.length;a < b;++a) {
-    if(c[a].id === e) {
+    if(c[a] && c[a].id === e) {
       if(this._inputs[a].occur === Occur.MUST_NOT) {
         d = !1;
         break
@@ -633,13 +642,13 @@ BooleanScorer.prototype.write = function() {
   d && f >= this._query.minimumOptionalMatches && (h.sumOfSquaredWeights *= this._query.boost * this._query.boost, this.emit("data", h));
   a = 0;
   for(b = this._inputs.length;a < b;++a) {
-    c[a].id === e && this._inputs[a].collector.drain()
+    c[a] && c[a].id === e && this._inputs[a].collector.drain()
   }
   return!0
 };
 BooleanScorer.prototype.end = function() {
-  if(this._inputs.length) {
-    throw Error("BooleanScorer#end called while there are still inputs attached!");
+  if(this._collectorCount) {
+    throw Error("BooleanScorer#end called while there are still collectors attached!");
   }
   this.emit("end");
   this.destroy()
@@ -655,7 +664,7 @@ BooleanScorer.prototype.destroy = function() {
   var a, b;
   a = 0;
   for(b = this._inputs.length;a < b;++a) {
-    this._inputs[a].collector.destroy()
+    this._inputs[a].collector && this._inputs[a].collector.destroy()
   }
   Stream.prototype.destroy.call(this)
 };

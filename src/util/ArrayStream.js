@@ -74,7 +74,7 @@ ArrayStream.prototype._run = function () {
 		this.emit('data', data);
 	}
 	
-	if (this._index >= this._entries.length) {
+	if (!this._paused && this._index >= this._entries.length) {
 		this.emit('end');
 		this.destroy();
 	}
