@@ -114,7 +114,6 @@ try {
     if(!this._events) {
       this._events = {}
     }
-    this.emit("newListener", a, b);
     this._events[a] ? Array.isArray(this._events[a]) ? this._events[a].push(b) : this._events[a] = [this._events[a], b] : this._events[a] = b;
     return this
   }, EventEmitter.prototype.on = EventEmitter.prototype.addListener, EventEmitter.prototype.once = function(a, b) {
@@ -147,8 +146,7 @@ try {
       if(e < 0) {
         return this
       }
-      c.splice(e, 1);
-      c.length == 0 && delete this._events[a]
+      c.length === 1 ? delete this._events[a] : c.splice(e, 1)
     }else {
       (c === b || c.listener && c.listener === b) && delete this._events[a]
     }
@@ -173,7 +171,6 @@ function Stream() {
   EventEmitter.call(this)
 }
 Stream.prototype = Object.create(EventEmitter.prototype);
-Stream.pipes = [];
 Stream.prototype.readable = !1;
 Stream.prototype.writable = !1;
 Stream.prototype.pipe = function(a, b) {
@@ -188,9 +185,7 @@ Stream.prototype.pipe = function(a, b) {
     g.readable && g.resume()
   }
   function f() {
-    var b = Stream.pipes.indexOf(a);
-    Stream.pipes.splice(b, 1);
-    Stream.pipes.indexOf(a) === -1 && a.end()
+    a.end()
   }
   function h() {
     g.pause()
@@ -210,8 +205,7 @@ Stream.prototype.pipe = function(a, b) {
     g.removeListener("close", i);
     g.removeListener("error", i);
     a.removeListener("end", i);
-    a.removeListener("close", i);
-    a.emit("pipeDisconnected", g)
+    a.removeListener("close", i)
   }
   var g = this;
   g.on("data", c);
@@ -220,7 +214,7 @@ Stream.prototype.pipe = function(a, b) {
   }
   a.on("drain", d);
   if(!b || b.end !== !1) {
-    Stream.pipes.push(a), g.on("end", f), g.on("close", f)
+    g.on("end", f), g.on("close", f)
   }
   a.on("pause", h);
   a.on("resume", j);
@@ -228,8 +222,7 @@ Stream.prototype.pipe = function(a, b) {
   g.on("close", i);
   g.on("error", i);
   a.on("end", i);
-  a.on("close", i);
-  a.emit("pipeConnected", g)
+  a.on("close", i)
 };
 Stream.prototype.pause = function() {
   this.emit("pause")
@@ -497,9 +490,9 @@ TermScorer.prototype = Object.create(Stream.prototype);
 TermScorer.prototype.readable = !0;
 TermScorer.prototype.writable = !0;
 TermScorer.prototype.write = function(a) {
-  var b = this._similarity, c = new DocumentTerms(a.documentID, [a]);
-  c.sumOfSquaredWeights = Math.pow(b.idf(a) * this._boost, 2);
-  c.score = b.tf(a) * Math.pow(b.idf(a), 2) * this._boost * b.norm(a);
+  var b = this._similarity, c = new DocumentTerms(a.documentID, [a]), e = b.idf(a);
+  c.sumOfSquaredWeights = e * this._boost * e * this._boost;
+  c.score = b.tf(a) * e * e * this._boost * b.norm(a);
   this.emit("data", c)
 };
 TermScorer.prototype.end = function(a) {

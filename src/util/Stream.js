@@ -31,12 +31,6 @@ function Stream() {
 Stream.prototype = Object.create(EventEmitter.prototype);
 
 /**
- * @type {Array.<WritableStream>}
- */
-
-Stream.pipes = [];
-
-/**
  * @type {boolean}
  */
 
@@ -89,17 +83,10 @@ Stream.prototype.pipe = function (dest, options) {
 	 */
 
 	function onend() {
-		var index = Stream.pipes.indexOf(dest);
-		Stream.pipes.splice(index, 1);
-
-		if (Stream.pipes.indexOf(dest) === -1) {
-			dest.end();
-		}
+		dest.end();
 	}
 
 	if (!options || options.end !== false) {
-		Stream.pipes.push(dest);
-		
 		source.on('end', onend);
 		source.on('close', onend);
 	}
@@ -133,7 +120,7 @@ Stream.prototype.pipe = function (dest, options) {
 		dest.removeListener('end', cleanup);
 		dest.removeListener('close', cleanup);
 		
-		dest.emit('pipeDisconnected', source);
+		//dest.emit('pipeDisconnected', source);
 	};
 
 	source.on('end', cleanup);
@@ -143,7 +130,7 @@ Stream.prototype.pipe = function (dest, options) {
 	dest.on('end', cleanup);
 	dest.on('close', cleanup);
 
-	dest.emit('pipeConnected', source);
+	//dest.emit('pipeConnected', source);
 };
 
 /**

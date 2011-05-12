@@ -96,14 +96,15 @@ TermScorer.prototype.writable = true;
 
 TermScorer.prototype.write = function (termVec) {
 	var similarity = this._similarity,
-		doc = new DocumentTerms(termVec.documentID, [termVec]);
+		doc = new DocumentTerms(termVec.documentID, [termVec]),
+		idf = similarity.idf(termVec);
 	
 	//compute sumOfSquaredWeights
-	doc.sumOfSquaredWeights = Math.pow((similarity.idf(termVec) * this._boost), 2);
+	doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
 	
 	//compute score
 	doc.score = similarity.tf(termVec) * 
-		Math.pow(similarity.idf(termVec), 2) * 
+		idf * idf *
 		this._boost * 
 		similarity.norm(termVec);
 	

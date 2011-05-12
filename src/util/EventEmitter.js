@@ -117,7 +117,7 @@ try {
 	
 		// To avoid recursion in the case that type == "newListeners"! Before
 		// adding it to the listeners, first emit "newListeners".
-		this.emit('newListener', type, listener);
+		//this.emit('newListener', type, listener);
 	
 		if (!this._events[type]) {
 			// Optimize the case of one listener. Don't need the extra array object.
@@ -185,8 +185,12 @@ try {
 			}
 	
 			if (position < 0) return this;
-			list.splice(position, 1);
-			if (list.length == 0) delete this._events[type];
+			
+			if (list.length === 1) {
+				delete this._events[type];
+			} else {
+				list.splice(position, 1);
+			}
 		} else if (list === listener || (list.listener && list.listener === listener)) {
 			delete this._events[type];
 		}
