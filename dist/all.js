@@ -211,25 +211,25 @@ Stream.prototype.pipe = function(a, b) {
     Stream.pipes.splice(b, 1);
     Stream.pipes.indexOf(a) === -1 && a.end()
   }
-  function i() {
+  function h() {
     g.pause()
   }
   function j() {
     g.readable && g.resume()
   }
-  function h() {
+  function i() {
     g.removeListener("data", c);
     g.removeListener("error", e);
     a.removeListener("drain", d);
     g.removeListener("end", f);
     g.removeListener("close", f);
-    a.removeListener("pause", i);
+    a.removeListener("pause", h);
     a.removeListener("resume", j);
-    g.removeListener("end", h);
-    g.removeListener("close", h);
-    g.removeListener("error", h);
-    a.removeListener("end", h);
-    a.removeListener("close", h);
+    g.removeListener("end", i);
+    g.removeListener("close", i);
+    g.removeListener("error", i);
+    a.removeListener("end", i);
+    a.removeListener("close", i);
     a.emit("pipeDisconnected", g)
   }
   var g = this;
@@ -242,13 +242,13 @@ Stream.prototype.pipe = function(a, b) {
   if(!b || b.end !== !1) {
     g.on("end", f), g.on("close", f)
   }
-  a.on("pause", i);
+  a.on("pause", h);
   a.on("resume", j);
-  g.on("end", h);
-  g.on("close", h);
-  g.on("error", h);
-  a.on("end", h);
-  a.on("close", h);
+  g.on("end", i);
+  g.on("close", i);
+  g.on("error", i);
+  a.on("end", i);
+  a.on("close", i);
   a.emit("pipeConnected", g)
 };
 Stream.prototype.pause = function() {
@@ -303,6 +303,7 @@ SingleCollector.prototype.write = function(a) {
     throw Error("Stream is full");
   }
   this.data = a;
+  this.emit("data", a);
   return this.data === "undefined"
 };
 SingleCollector.prototype.drain = function() {
@@ -319,6 +320,8 @@ function DocumentTerms(a, b) {
   this.terms = b || []
 }
 DocumentTerms.prototype.terms = [];
+DocumentTerms.prototype.sumOfSquaredWeights = 0;
+DocumentTerms.prototype.score = 0;
 exports.DocumentTerms = DocumentTerms;
 function TopDocumentsCollector(a, b) {
   Collector.call(this, b);
@@ -415,6 +418,16 @@ function MemoryIndex() {
   this._docs = {};
   this._termVecs = {}
 }
+MemoryIndex.documentIDComparator = function(a, b) {
+  if(a.documentID < b.documentID) {
+    return-1
+  }else {
+    if(a.documentID > b.documentID) {
+      return 1
+    }
+  }
+  return 0
+};
 MemoryIndex.prototype._docCount = 0;
 MemoryIndex.prototype._termIndexer = new DefaultTermIndexer;
 MemoryIndex.prototype.generateID = function() {
@@ -427,7 +440,7 @@ MemoryIndex.prototype.addDocument = function(a, b, c) {
   a = this._termIndexer.index(a);
   e = 0;
   for(d = a.length;e < d;++e) {
-    a[e].documentID = b, f = JSON.stringify([a[e].term, a[e].field]), this._termVecs[f] ? this._termVecs[f].push(a[e]) : this._termVecs[f] = [a[e]]
+    a[e].documentID = b, f = JSON.stringify([a[e].term, a[e].field]), this._termVecs[f] ? Array.orderedInsert(this._termVecs[f], a[e], MemoryIndex.documentIDComparator) : this._termVecs[f] = [a[e]]
   }
   c && c(null)
 };
@@ -570,30 +583,83 @@ function BooleanScorer(a, b, c) {
   this._inputs = [];
   this.addInputs(a.clauses)
 }
+BooleanScorer.prototype = Object.create(Stream.prototype);
+BooleanScorer.prototype._paused = !1;
 BooleanScorer.prototype.readable = !0;
+BooleanScorer.prototype.writable = !0;
 BooleanScorer.prototype.addInputs = function(a) {
-  var b, c, e, d, f;
-  b = 0;
-  for(c = a.length;b < c;++b) {
-    e = a[b], d = new SingleCollector, f = new BooleanClauseStream(e.query, e.occur, d), d.pipe(this, {end:!1}), e.query.score(this._similarity, this._index).pipe(d), this._inputs.push(f), e = function(a, b) {
+  var b = this, c, e, d, f, h;
+  c = 0;
+  for(e = a.length;c < e;++c) {
+    d = a[c], f = new SingleCollector, h = new BooleanClauseStream(d.query, d.occur, f), f.pipe(this, {end:!1}), d.query.score(this._similarity, this._index).pipe(f), this._inputs.push(h), d = function(a) {
       return function() {
-        Array.remove(a, b)
+        Array.remove(b._inputs, a);
+        b._inputs.length || b.end()
       }
-    }(this._inputs, f), d.on("end", e), d.on("close", e)
+    }(h), f.on("end", d), f.on("close", d)
   }
 };
 BooleanScorer.prototype.write = function() {
+  var a, b, c = [], e = 0, d = !1, f = 0, h;
+  if(this._paused) {
+    return!0
+  }
+  a = 0;
+  for(b = this._inputs.length;a < b;++a) {
+    c[a] = this._inputs[a].collector.data;
+    if(typeof c[a] === "undefined") {
+      return!0
+    }
+    a > 0 && c[a].id < c[e].id && (e = a)
+  }
+  e = c[e].id;
+  h = new DocumentTerms(e);
+  a = 0;
+  for(b = this._inputs.length;a < b;++a) {
+    if(c[a].id === e) {
+      if(this._inputs[a].occur === Occur.MUST_NOT) {
+        d = !1;
+        break
+      }else {
+        this._inputs[a].occur === Occur.SHOULD && f++, d = !0, h.terms = h.terms.concat(c[a].terms), h.sumOfSquaredWeights += c[a].sumOfSquaredWeights, h.score += c[a].score
+      }
+    }else {
+      if(this._inputs[a].occur === Occur.MUST) {
+        d = !1;
+        break
+      }
+    }
+  }
+  d && f >= this._query.minimumOptionalMatches && (h.sumOfSquaredWeights *= this._query.boost * this._query.boost, this.emit("data", h));
+  a = 0;
+  for(b = this._inputs.length;a < b;++a) {
+    c[a].id === e && this._inputs[a].collector.drain()
+  }
+  return!0
 };
 BooleanScorer.prototype.end = function() {
+  if(this._inputs.length) {
+    throw Error("BooleanScorer#end called while there are still inputs attached!");
+  }
+  this.emit("end");
+  this.destroy()
 };
 BooleanScorer.prototype.pause = function() {
+  this._paused = !0
 };
 BooleanScorer.prototype.resume = function() {
+  this._paused = !1;
+  this.write()
 };
 BooleanScorer.prototype.destroy = function() {
+  var a, b;
+  a = 0;
+  for(b = this._inputs.length;a < b;++a) {
+    this._inputs[a].collector.destroy()
+  }
+  Stream.prototype.destroy.call(this)
 };
-BooleanScorer.prototype.destroySoon = function() {
-};
+BooleanScorer.prototype.destroySoon = BooleanScorer.prototype.destroy;
 function BooleanClauseStream(a, b, c) {
   this.query = a;
   this.occur = b;

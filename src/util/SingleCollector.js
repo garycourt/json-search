@@ -34,6 +34,7 @@ SingleCollector.prototype.write = function (data) {
 	}
 	
 	this.data = data;
+	this.emit('data', data);
 	return this.data === "undefined";
 };
 

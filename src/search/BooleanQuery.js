@@ -70,6 +70,8 @@ function BooleanScorer(query, similarity, index) {
 	this.addInputs(query.clauses);
 };
 
+BooleanScorer.prototype = Object.create(Stream.prototype);
+
 /**
  * @protected
  * @type {BooleanQuery} 
@@ -99,10 +101,23 @@ BooleanScorer.prototype._index;
 BooleanScorer.prototype._inputs;
 
 /**
+ * @protected
+ * @type {boolean}
+ */
+
+BooleanScorer.prototype._paused = false;
+
+/**
  * @type {boolean}
  */
 
 BooleanScorer.prototype.readable = true;
+
+/**
+ * @type {boolean}
+ */
+
+BooleanScorer.prototype.writable = true;
 
 /**
  * @param {Array.<BooleanClause>} clauses
@@ -119,11 +134,15 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 		clause.query.score(this._similarity, this._index).pipe(collector);
 		this._inputs.push(bcs);
 		
-		remover = (function (a, b) {
+		remover = (function (b) {
 			return function () {
-				Array.remove(a, b);
+				Array.remove(self._inputs, b);
+				
+				if (!self._inputs.length) {
+					self.end();
+				}
 			}
-		})(this._inputs, bcs);
+		})(bcs);
 		
 		collector.on('end', remover);
 		collector.on('close', remover);
@@ -131,34 +150,110 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 };
 
 /**
+ * @return {boolean}
  */
 
-BooleanScorer.prototype.write = function () {};  //TODO
+BooleanScorer.prototype.write = function () {
+	var x, xl, docs = [], lowestIndex = 0, lowestID, match = false, optionalMatches = 0, doc;
+	
+	if (this._paused) {
+		return true;  //scorer is paused, proceed no further
+	}
+	
+	//collect all documents, find lowest document ID
+	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
+		docs[x] = this._inputs[x].collector.data;
+		
+		if (typeof docs[x] === "undefined") {
+			return true;  //not all collectors are full
+		}
+		
+		if (x > 0 && (docs[x].id < docs[lowestIndex].id)) {
+			lowestIndex = x;
+		}
+	}
+	
+	lowestID = docs[lowestIndex].id;
+	doc = new DocumentTerms(lowestID);
+	
+	//perform boolean logic
+	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
+		if (docs[x].id === lowestID) {
+			if (this._inputs[x].occur === Occur.MUST_NOT) {
+				match = false;
+				break;  //this document has a forbidden term
+			} else {  //MUST or SHOULD
+				if (this._inputs[x].occur === Occur.SHOULD) {
+					optionalMatches++;
+				}
+				match = true;
+				doc.terms = doc.terms.concat(docs[x].terms);
+				doc.sumOfSquaredWeights += docs[x].sumOfSquaredWeights;
+				doc.score += docs[x].score;
+			}
+		} else if (this._inputs[x].occur === Occur.MUST) {
+			match = false;
+			break;  //this document does not have a required term
+		}
+	}
+	
+	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
+		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
+		this.emit('data', doc);
+	}
+	
+	//remove documents with lowestID
+	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
+		if (docs[x].id === lowestID) {
+			this._inputs[x].collector.drain();
+		}
+	}
+	
+	return true;
+};
 
 /**
  */
 
-BooleanScorer.prototype.end = function () {};  //TODO
+BooleanScorer.prototype.end = function () {
+	if (this._inputs.length) {
+		throw new Error("BooleanScorer#end called while there are still inputs attached!");
+	}
+	
+	this.emit('end');
+	this.destroy();
+};
 
 /**
  */
 
-BooleanScorer.prototype.pause = function () {};  //TODO
+BooleanScorer.prototype.pause = function () {
+	this._paused = true;
+};
 
 /**
  */
 
-BooleanScorer.prototype.resume = function () {};  //TODO
+BooleanScorer.prototype.resume = function () {
+	this._paused = false;
+	this.write();
+};
 
 /**
  */
 
-BooleanScorer.prototype.destroy = function () {};  //TODO
+BooleanScorer.prototype.destroy = function () {
+	var x, xl;
+	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
+		this._inputs[x].collector.destroy();
+	}
+	Stream.prototype.destroy.call(this);
+};
 
 /**
  */
 
-BooleanScorer.prototype.destroySoon = function () {};  //TODO
+BooleanScorer.prototype.destroySoon = BooleanScorer.prototype.destroy;
 
 
 /**

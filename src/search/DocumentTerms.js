@@ -25,13 +25,13 @@ DocumentTerms.prototype.terms = [];
  * @type {number}
  */
 
-DocumentTerms.prototype.sumOfSquaredWeights;
+DocumentTerms.prototype.sumOfSquaredWeights = 0;
 
 /**
  * @type {number}
  */
 
-DocumentTerms.prototype.score;
+DocumentTerms.prototype.score = 0;
 
 
 exports.DocumentTerms = DocumentTerms;

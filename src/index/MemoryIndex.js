@@ -9,6 +9,22 @@ function MemoryIndex() {
 };
 
 /**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+MemoryIndex.documentIDComparator = function (a, b) {
+	if (a.documentID < b.documentID) {
+		return -1;
+	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
+/**
  * @protected
  * @type {Object}
  */
@@ -68,7 +84,7 @@ MemoryIndex.prototype.addDocument = function (doc, id, callback) {
 		if (!this._termVecs[vecKey]) {
 			this._termVecs[vecKey] = [ termVecEnts[i] ];
 		} else {
-			this._termVecs[vecKey].push(termVecEnts[i]);
+			Array.orderedInsert(this._termVecs[vecKey], termVecEnts[i], MemoryIndex.documentIDComparator);
 		}
 	}
 	
