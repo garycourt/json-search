@@ -22,6 +22,8 @@
     this.$type = "BooleanQuery";
     this.clauses = clauses;
   }
+  
+  var defaultField = arguments[2] || null;
 }
 
 start = Query
@@ -30,19 +32,26 @@ WHITESPACE "whitespace" = [ \t\n\r\u3000]
 SKIP = WHITESPACE*
 
 Number "number" = num:[0-9]+ fract:("." [0-9]+)? {
-  return parseFloat(num.concat(fract[0], fract[1]).join(""), 10);
+  return parseFloat(num.concat(fract[0], fract[1]).join(""));
 }
 
 ESCAPED_CHAR = "\\" .
-TERM_START_CHAR = [^ \t\n\r\u3000+\-!():^\[\]"{}~*?\\] / ESCAPED_CHAR
+TERM_START_CHAR = [^ \t\n\r\u3000+\-!():^\[\]"{}~*?\\]
 TERM_CHAR = TERM_START_CHAR / ESCAPED_CHAR / "-" / "+"
 
 Term "term" = start:TERM_START_CHAR rest:TERM_CHAR* {
   return [ start ].concat(rest).join("");
 }
 
-TermQuery = field:(Term ":")? term:Term boost:("^" Number)? {
-  return new TermQuery(term, field ? field[0] : null, boost ? boost[1] : 1.0);
+Boost "boost" = boost:("^" Number)? {
+  if (boost) {
+    boost = boost[1];
+  }
+  return (typeof boost === "number" ? boost : 1.0);
+}
+
+TermQuery = field:(Term ":")? term:Term boost:Boost {
+  return new TermQuery(term, field ? field[0] : defaultField, boost);
 }
 
 BooleanClause = occur:("+" / "-")? query:(SubQuery / TermQuery) {
@@ -67,10 +76,11 @@ BooleanQuery = clause:BooleanClause otherClauses:(SKIP BooleanClause)* {
   return new BooleanQuery(result);
 }
 
-SubQuery = "(" sub:Query ")" {
+SubQuery = "(" sub:Query ")" boost:Boost {
+  sub.boost = boost;
   return sub;
 }
 
-Query = SKIP query:(SubQuery / BooleanQuery) SKIP {
+Query = SKIP query:BooleanQuery SKIP {
   return query;
 }

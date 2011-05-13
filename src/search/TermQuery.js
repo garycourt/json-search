@@ -53,6 +53,14 @@ TermQuery.prototype.extractTerms = function () {
 	})];
 };
 
+/**
+ * @return {Query}
+ */
+
+TermQuery.prototype.rewrite = function () {
+	return this;  //can not be optimized
+};
+
 
 /**
  * @protected

@@ -23,3 +23,9 @@ Query.prototype.score = function (similarity, index) {};
  */
 
 Query.prototype.extractTerms = function () {};
+
+/**
+ * @return {Query}
+ */
+
+Query.prototype.rewrite = function () {};

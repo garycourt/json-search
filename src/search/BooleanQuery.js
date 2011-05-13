@@ -2,11 +2,13 @@
  * @constructor
  * @param {Array.<BooleanClause>} [clauses]
  * @param {number} [minimumOptionalMatches]
+ * @param {number} [boost]
  */
 
-function BooleanQuery(clauses, minimumOptionalMatches) {
+function BooleanQuery(clauses, minimumOptionalMatches, boost) {
 	this.clauses = clauses || [];
 	this.minimumOptionalMatches = minimumOptionalMatches || 0;
+	this.boost = boost || 1.0;
 };
 
 /**
@@ -47,6 +49,35 @@ BooleanQuery.prototype.extractTerms = function () {
 		result = result.concat(this.clauses[x].query.extractTerms());
 	}
 	return result;
+};
+
+/**
+ * @return {Query}
+ */
+
+BooleanQuery.prototype.rewrite = function () {
+	var result, x, xl, rewrote = false;
+	
+	if (this.minimumOptionalMatches === 0 && this.clauses.length === 1 && this.clauses[0].occur !== Occur.MUST_NOT) {
+		result = this.clauses[0].query;
+		result = result.rewrite();
+		result.boost *= this.boost;
+	} else {
+		result = new BooleanQuery();
+		result.boost = this.boost;
+		for (x = 0, xl = this.clauses.length; x < xl; ++x) {
+			result.clauses[x] = new BooleanClause(this.clauses[x].query.rewrite(), this.clauses[x].occur);
+			if (result.clauses[x].query !== this.clauses[x].query) {
+				rewrote = true;
+			}
+		}
+		
+		if (!rewrote) {
+			result = this;
+		}
+	}
+	
+	return /** @type {Query} */ (result);
 };
 
 
@@ -216,7 +247,7 @@ BooleanScorer.prototype.write = function () {
 	}
 	
 	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
-		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
+		doc.sumOfSquaredWeights *= this._query.boost;
 		this.emit('data', doc);
 	}
 	

@@ -1,6 +1,8 @@
 /**
+ * Used only by Searcher. Do not include this in your queries.
+ * 
  * @constructor
- * @implements Query
+ * @implements {Query}
  * @param {Query} query
  */
 
@@ -38,6 +40,19 @@ NormalizedQuery.prototype.score = function (similarity, index) {
 
 NormalizedQuery.prototype.extractTerms = function () {
 	return this.query.extractTerms();
+};
+
+/**
+ * @return {Query}
+ */
+
+NormalizedQuery.prototype.rewrite = function () {
+	var oldQuery;
+	do {
+		oldQuery = this.query;
+		this.query = this.query.rewrite();
+	} while (this.query !== oldQuery);
+	return this;
 };
 
 
