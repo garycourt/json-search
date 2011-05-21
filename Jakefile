@@ -1,6 +1,7 @@
 var async = require('./lib/async');
 var fs = require('fs');
 var spawn = require('child_process').spawn;
+var peg = require('./lib/node-pegjs');
 
 var srcDir = './src/';
 var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'index/', srcDir + 'search/'];
@@ -15,6 +16,28 @@ var compressOutput = 'json-search.min.js';
 
 desc('This is the default task.');
 task({'default' : ['compile', 'compress']}, function () {});
+
+/**
+ * Compile QueryParser Task
+ */
+
+desc('Compiles the QueryParser class.');
+task('compileQueryParser', function () {
+	fs.readFile(srcDir + 'search/QueryParserImpl.pegjs', 'utf8', function (err, data) {
+		if (err) {
+			return fail(err);
+		}
+		
+		var parser = peg.buildParser(data);
+		fs.writeFile(srcDir + 'search/QueryParserImpl.js', 'QueryParser.impl = ' + parser.toSource(), 'utf8', function (err) {
+			if (err) {
+				fail(err);
+			} else {
+				complete();
+			}
+		});
+	});
+}, true);
 
 /**
  * Compile Task
@@ -65,7 +88,7 @@ function compileDirs(dirs, output, callback) {
 }
 
 desc('Concatenates all src files.');
-task('compile', function () {
+task({'compile' : ['compileQueryParser']}, function () {
 	async.parallel([
 		compileDirs.bind(this, codeDirs, codeOutput),
 		compileDirs.bind(this, interfaceDirs, interfaceOutput),

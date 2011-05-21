@@ -2647,7 +2647,10 @@ QueryParser.impl = (function(){
       }
       
       return result;
-    }
+    },
+    
+    /* Returns the parser source code. */
+    toSource: function() { return this._source; }
   };
   
   /* Thrown when a parser encounters a syntax error. */
@@ -2662,7 +2665,7 @@ QueryParser.impl = (function(){
   result.SyntaxError.prototype = Error.prototype;
   
   return result;
-})();
+})()
 
 /**
  * @constructor

@@ -1,28 +1,4 @@
 {
-  function TermQuery(term, field, boost) {
-    this.$type = "TermQuery";
-    this.term = term;
-    this.field = field;
-    this.boost = boost;
-  }
-
-  var Occur = {
-    MUST : 1,
-    SHOULD : 0,
-    MUST_NOT : -1
-  };
-
-  function BooleanClause(query, occur) {
-    this.$type = "BooleanClause";
-    this.query = query;
-    this.occur = occur;
-  }
-
-  function BooleanQuery(clauses) {
-    this.$type = "BooleanQuery";
-    this.clauses = clauses;
-  }
-  
   var defaultField = arguments[2] || null;
 }
 
