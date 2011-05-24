@@ -27,8 +27,9 @@ Searcher.prototype.similarity = new DefaultSimilarity();
  */
 
 Searcher.prototype.search = function (query, max, callback) {
-	var collector = new TopDocumentsCollector(max, callback);
-	var normQuery = new NormalizedQuery(query);
+	var collector, normQuery;
+	collector = new TopDocumentsCollector(max, callback);
+	normQuery = new NormalizedQuery(query);
 	normQuery.score(this.similarity, this._index).pipe(collector);
 };
 

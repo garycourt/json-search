@@ -1305,6 +1305,8 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 				if (!self._collectorCount || b.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
+				} else {
+					self.write();
 				}
 			}
 		})(bcs);
@@ -1692,6 +1694,7 @@ QueryParser.impl;
  * @param {string} str
  * @param {string|null} [defaultField]
  * @return {Query}
+ * @throws {SyntaxError}
  */
 
 QueryParser.parse = function (str, defaultField) {
@@ -2696,8 +2699,9 @@ Searcher.prototype.similarity = new DefaultSimilarity();
  */
 
 Searcher.prototype.search = function (query, max, callback) {
-	var collector = new TopDocumentsCollector(max, callback);
-	var normQuery = new NormalizedQuery(query);
+	var collector, normQuery;
+	collector = new TopDocumentsCollector(max, callback);
+	normQuery = new NormalizedQuery(query);
 	normQuery.score(this.similarity, this._index).pipe(collector);
 };
 

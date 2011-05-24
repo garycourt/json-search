@@ -15,6 +15,7 @@ QueryParser.impl;
  * @param {string} str
  * @param {string|null} [defaultField]
  * @return {Query}
+ * @throws {SyntaxError}
  */
 
 QueryParser.parse = function (str, defaultField) {

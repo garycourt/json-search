@@ -185,6 +185,8 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 				if (!self._collectorCount || b.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
+				} else {
+					self.write();
 				}
 			}
 		})(bcs);
