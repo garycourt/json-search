@@ -28,8 +28,3 @@ WritableStream.prototype.end = function (data) {};
  */
 
 WritableStream.prototype.destroy = function () {};
-
-/**
- */
-
-WritableStream.prototype.destroySoon = function () {};

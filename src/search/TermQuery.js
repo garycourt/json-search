@@ -1,6 +1,6 @@
 /**
  * @constructor
- * @implements Query
+ * @implements {Query}
  * @param {string} term
  * @param {string|null} [field]
  * @param {number} [boost]

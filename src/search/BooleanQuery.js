@@ -304,11 +304,6 @@ BooleanScorer.prototype.destroy = function () {
 	Stream.prototype.destroy.call(this);
 };
 
-/**
- */
-
-BooleanScorer.prototype.destroySoon = BooleanScorer.prototype.destroy;
-
 
 /**
  * @protected

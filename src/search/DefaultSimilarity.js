@@ -1,6 +1,6 @@
 /**
  * @constructor
- * @implements Similarity
+ * @implements {Similarity}
  */
 
 var DefaultSimilarity = function () {};

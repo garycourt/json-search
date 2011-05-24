@@ -161,11 +161,6 @@ ReadableStream.prototype.resume = function () {};
 ReadableStream.prototype.destroy = function () {};
 
 /**
- */
-
-ReadableStream.prototype.destroySoon = function () {};
-
-/**
  * @interface
  */
 
@@ -408,8 +403,3 @@ WritableStream.prototype.end = function (data) {};
  */
 
 WritableStream.prototype.destroy = function () {};
-
-/**
- */
-
-WritableStream.prototype.destroySoon = function () {};

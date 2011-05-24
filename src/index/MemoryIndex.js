@@ -1,6 +1,6 @@
 /**
  * @constructor
- * @implements Index
+ * @implements {Index}
  */
 
 function MemoryIndex() {

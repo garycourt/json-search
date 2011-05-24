@@ -555,15 +555,13 @@ Stream.prototype.destroy = function () {
 	this.removeAllListeners();
 };
 
-Stream.prototype.destroySoon = Stream.prototype.destroy;
-
 
 exports.Stream = Stream;
 
 /**
  * @constructor
  * @extends {Stream}
- * @implements ReadableStream
+ * @implements {ReadableStream}
  * @param {Array} entries
  * @param {function(?)} [mapper]
  */
@@ -683,11 +681,6 @@ ArrayStream.prototype.destroy = function () {
 	Stream.prototype.destroy.call(this);
 };
 
-/**
- */
-
-ArrayStream.prototype.destroySoon = function () {};  //Does nothing
-
 
 exports.ArrayStream = ArrayStream;
 
@@ -762,11 +755,6 @@ Collector.prototype.destroy = function () {
 		this.callback = null;
 	}
 };
-
-/**
- */
-
-Collector.prototype.destroySoon = Collector.prototype.destroy;
 
 
 exports.Collector = Collector;
@@ -938,7 +926,7 @@ exports.DefaultTermIndexer = DefaultTermIndexer;
 
 /**
  * @constructor
- * @implements Index
+ * @implements {Index}
  */
 
 function MemoryIndex() {
@@ -1424,11 +1412,6 @@ BooleanScorer.prototype.destroy = function () {
 	Stream.prototype.destroy.call(this);
 };
 
-/**
- */
-
-BooleanScorer.prototype.destroySoon = BooleanScorer.prototype.destroy;
-
 
 /**
  * @protected
@@ -1458,7 +1441,7 @@ exports.BooleanQuery = BooleanQuery;
 
 /**
  * @constructor
- * @implements Similarity
+ * @implements {Similarity}
  */
 
 var DefaultSimilarity = function () {};
@@ -2710,7 +2693,7 @@ exports.Searcher = Searcher;
 
 /**
  * @constructor
- * @implements Query
+ * @implements {Query}
  * @param {string} term
  * @param {string|null} [field]
  * @param {number} [boost]

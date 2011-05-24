@@ -157,7 +157,5 @@ Stream.prototype.destroy = function () {
 	this.removeAllListeners();
 };
 
-Stream.prototype.destroySoon = Stream.prototype.destroy;
-
 
 exports.Stream = Stream;

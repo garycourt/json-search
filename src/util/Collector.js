@@ -70,10 +70,5 @@ Collector.prototype.destroy = function () {
 	}
 };
 
-/**
- */
-
-Collector.prototype.destroySoon = Collector.prototype.destroy;
-
 
 exports.Collector = Collector;

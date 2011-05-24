@@ -32,8 +32,3 @@ ReadableStream.prototype.resume = function () {};
  */
 
 ReadableStream.prototype.destroy = function () {};
-
-/**
- */
-
-ReadableStream.prototype.destroySoon = function () {};

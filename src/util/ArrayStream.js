@@ -1,7 +1,7 @@
 /**
  * @constructor
  * @extends {Stream}
- * @implements ReadableStream
+ * @implements {ReadableStream}
  * @param {Array} entries
  * @param {function(?)} [mapper]
  */
@@ -120,11 +120,6 @@ ArrayStream.prototype.destroy = function () {
 	this._index = Number.POSITIVE_INFINITY;
 	Stream.prototype.destroy.call(this);
 };
-
-/**
- */
-
-ArrayStream.prototype.destroySoon = function () {};  //Does nothing
 
 
 exports.ArrayStream = ArrayStream;
