@@ -2650,7 +2650,7 @@ QueryParser.impl = (function(){
     },
     
     /* Returns the parser source code. */
-    toSource: function() { return this._source; }
+    toSource: function() { return typeof this._source === 'string' ? this._source : this.toString(); }
   };
   
   /* Thrown when a parser encounters a syntax error. */
