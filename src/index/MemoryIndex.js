@@ -71,7 +71,7 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 	entry = this._termIndexer.index(doc, id);
 	
 	for (i = 0, il = entry.length; i < il; ++i) {
-		key = JSON.stringify([entry[i].term, entry[i].field]);
+		key = JSON.stringify([entry[i].field, entry[i].term]);
 		if (!this._index[key]) {
 			this._index[key] = [ entry[i] ];
 		} else {
@@ -141,7 +141,7 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
  */
 
 MemoryIndex.prototype.getTermVectors = function (term, field) {
-	var key = JSON.stringify([term, field]),
+	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
 		stream = new ArrayStream(entries, function (entry) {
@@ -160,6 +160,17 @@ MemoryIndex.prototype.getTermVectors = function (term, field) {
 			});
 		});
 	return stream.start();
+};
+
+/**
+ * @param {string|null} field
+ * @param {string} startTerm
+ * @param {string} endTerm
+ * @return {ReadableStream}
+ */
+
+MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm) {
+	//TODO
 };
 
 

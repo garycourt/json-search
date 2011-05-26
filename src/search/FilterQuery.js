@@ -1,14 +1,14 @@
 /**
- * Used only by Searcher. Do not include this in your queries.
- * 
  * @constructor
  * @implements {Query}
  * @param {Query} query
+ * @param {function(DocumentTerms)} filter
  * @param {number} [boost]
  */
 
-function NormalizedQuery(query, boost) {
+function FilterQuery(query, filter, boost) {
 	this.query = query;
+	this.filter = filter;
 	this.boost = boost || 1.0;
 };
 
@@ -16,13 +16,19 @@ function NormalizedQuery(query, boost) {
  * @type {Query}
  */
 
-NormalizedQuery.prototype.query;
+FilterQuery.prototype.query;
+
+/**
+ * @type {function(DocumentTerms)}
+ */
+
+FilterQuery.prototype.filter;
 
 /**
  * @type {number}
  */
 
-NormalizedQuery.prototype.boost = 1.0;
+FilterQuery.prototype.boost = 1.0;
 
 /**
  * @param {Similarity} similarity
@@ -30,8 +36,8 @@ NormalizedQuery.prototype.boost = 1.0;
  * @return {ReadableStream}
  */
 
-NormalizedQuery.prototype.score = function (similarity, index) {
-	var scorer = new NormalizedScorer(this, similarity);
+FilterQuery.prototype.score = function (similarity, index) {
+	var scorer = new FilterScorer(this, similarity);
 	this.query.score(similarity, index).pipe(scorer);
 	return scorer;
 };
@@ -40,7 +46,7 @@ NormalizedQuery.prototype.score = function (similarity, index) {
  * @return {Array.<TermVectorEntry>}
  */
 
-NormalizedQuery.prototype.extractTerms = function () {
+FilterQuery.prototype.extractTerms = function () {
 	return this.query.extractTerms();
 };
 
@@ -48,7 +54,7 @@ NormalizedQuery.prototype.extractTerms = function () {
  * @return {Query}
  */
 
-NormalizedQuery.prototype.rewrite = function () {
+FilterQuery.prototype.rewrite = function () {
 	var oldQuery;
 	do {
 		oldQuery = this.query;
@@ -64,59 +70,61 @@ NormalizedQuery.prototype.rewrite = function () {
  * @extends {Stream}
  * @implements {ReadableStream}
  * @implements {WritableStream}
- * @param {NormalizedQuery} query
+ * @param {FilterQuery} query
  * @param {Similarity} similarity
  */
 
-function NormalizedScorer(query, similarity) {
+function FilterScorer(query, similarity) {
 	Stream.call(this);
 	this._query = query;
 	this._similarity = similarity;
 	this._maxOverlap = query.extractTerms().length;
 }
 
-NormalizedScorer.prototype = Object.create(Stream.prototype);
+FilterScorer.prototype = Object.create(Stream.prototype);
 
 /**
  * @protected
- * @type {NormalizedQuery}
+ * @type {FilterQuery}
  */
 
-NormalizedScorer.prototype._query;
+FilterScorer.prototype._query;
 
 /**
  * @protected
  * @type {Similarity}
  */
 
-NormalizedScorer.prototype._similarity;
+FilterScorer.prototype._similarity;
 
 /**
  * @protected
  * @type {number}
  */
 
-NormalizedScorer.prototype._maxOverlap;
+FilterScorer.prototype._maxOverlap;
 
-NormalizedScorer.prototype.readable = true;
+FilterScorer.prototype.readable = true;
 
-NormalizedScorer.prototype.writable = true;
+FilterScorer.prototype.writable = true;
 
 /**
  * @param {DocumentTerms} doc
  */
 
-NormalizedScorer.prototype.write = function (doc) {
-	doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
-	//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
-	this.emit('data', doc);
+FilterScorer.prototype.write = function (doc) {
+	if (this._query.filter(doc)) {
+		doc.score *= this._query.boost;
+		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
+		this.emit('data', doc);
+	}
 };
 
 /**
  * @param {DocumentTerms} [doc]
  */
 
-NormalizedScorer.prototype.end = function (doc) {
+FilterScorer.prototype.end = function (doc) {
 	if (typeof doc !== "undefined") {
 		this.write(doc);
 	}
@@ -125,4 +133,4 @@ NormalizedScorer.prototype.end = function (doc) {
 };
 
 
-exports.NormalizedQuery = NormalizedQuery;
+exports.FilterQuery = FilterQuery;

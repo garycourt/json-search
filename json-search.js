@@ -920,43 +920,6 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 };
 
 /**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
- * @return {number}
- */
-
-DefaultTermIndexer.prototype.compareDocumentIds = function (a, b) {
-	if (a.documentID < b.documentID) {
-		return -1;
-	} else if (a.documentID > b.documentID) {
-		return 1;
-	} 
-	//else
-	return 0;
-};
-
-/**
- * @param {TermVectorEntry} entry
- * @return {TermVector}
- */
-
-DefaultTermIndexer.prototype.toTermVector = function (entry) {
-	return /** @type {TermVector} */ ({
-		term : entry.term,
-		termFrequency : entry.termFrequency || 1,
-		termPositions : entry.termPositions || null,
-		termOffsets : entry.termOffsets || null,
-		field : entry.field || null,
-		fieldBoost : entry.fieldBoost || 1.0,
-		totalFieldTokens : entry.totalFieldTokens || 1,
-		documentBoost : entry.fieldBoost || 1.0,
-		documentID : entry.documentID,
-		documentFrequency : 1,
-		totalDocuments : 1
-	});
-};
-
-/**
  * @return {String}
  */
 
@@ -975,6 +938,22 @@ exports.DefaultTermIndexer = DefaultTermIndexer;
 function MemoryIndex() {
 	this._docs = {};
 	this._index = {};
+};
+
+/**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+MemoryIndex.documentIDComparator = function (a, b) {
+	if (a.documentID < b.documentID) {
+		return -1;
+	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
 };
 
 /**
@@ -1024,11 +1003,11 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 	entry = this._termIndexer.index(doc, id);
 	
 	for (i = 0, il = entry.length; i < il; ++i) {
-		key = JSON.stringify([entry[i].term, entry[i].field]);
+		key = JSON.stringify([entry[i].field, entry[i].term]);
 		if (!this._index[key]) {
 			this._index[key] = [ entry[i] ];
 		} else {
-			Array.orderedInsert(this._index[key], entry[i], this._termIndexer.compareDocumentIds);
+			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
 	}
 	
@@ -1094,16 +1073,36 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
  */
 
 MemoryIndex.prototype.getTermVectors = function (term, field) {
-	var key = JSON.stringify([term, field]),
+	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
 		stream = new ArrayStream(entries, function (entry) {
-			var termVector = self._termIndexer.toTermVector(entry);
-			termVector.documentFrequency = entries.length;
-			termVector.totalDocuments = self._docCount;
-			return termVector;
+			return /** @type {TermVector} */ ({
+				term : entry.term,
+				termFrequency : entry.termFrequency || 1,
+				termPositions : entry.termPositions || null,
+				termOffsets : entry.termOffsets || null,
+				field : entry.field || null,
+				fieldBoost : entry.fieldBoost || 1.0,
+				totalFieldTokens : entry.totalFieldTokens || 1,
+				documentBoost : entry.fieldBoost || 1.0,
+				documentID : entry.documentID,
+				documentFrequency : entries.length,
+				totalDocuments : self._docCount
+			});
 		});
 	return stream.start();
+};
+
+/**
+ * @param {string|null} field
+ * @param {string} startTerm
+ * @param {string} endTerm
+ * @return {ReadableStream}
+ */
+
+MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm) {
+	//TODO
 };
 
 
@@ -1147,6 +1146,307 @@ var Occur = {
 
 exports.BooleanQuery = BooleanQuery;
 exports.Occur = Occur;
+
+/**
+ * @constructor
+ * @extends {Collector}
+ * @param {number} max
+ * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
+ */
+
+function TopDocumentsCollector(max, callback) {
+	Collector.call(this, callback);
+	this.max = max || 1;
+};
+
+/**
+ * @param {DocumentTerms} a
+ * @param {DocumentTerms} b
+ * @return {number}
+ */
+
+TopDocumentsCollector.compareScores = function (a, b) {
+	return b.score - a.score;
+};
+
+TopDocumentsCollector.prototype = Object.create(Collector.prototype);
+
+/**
+ * @type {Array.<DocumentTerms>}
+ * @override
+ */
+
+TopDocumentsCollector.prototype.collection;
+
+/**
+ * @type {number}
+ */
+
+TopDocumentsCollector.prototype.max;
+
+/**
+ * @type {number}
+ */
+
+TopDocumentsCollector.prototype.lowestScore = 0;
+
+/**
+ * @param {DocumentTerms} doc
+ * @override
+ */
+
+TopDocumentsCollector.prototype.write = function (doc) {
+	if (this.collection.length < this.max || doc.score > this.lowestScore) {
+		if (this.collection.length >= this.max) {
+			this.collection.pop();  //remove lowest scored document
+		}
+		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
+		this.lowestScore = this.collection[this.collection.length - 1].score;
+	}
+};
+
+
+exports.TopDocumentsCollector = TopDocumentsCollector;
+
+/**
+ * @constructor
+ * @implements {Similarity}
+ */
+
+var DefaultSimilarity = function () {};
+
+/**
+ * @param {TermVector} termVec
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.norm = function (termVec) {
+	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTokens));
+};
+
+/**
+ * @param {DocumentTerms} doc
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.queryNorm = function (doc) {
+	return 1.0 / Math.sqrt(doc.sumOfSquaredWeights);
+};
+
+/**
+ * @param {TermVector} termVec
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.tf = function (termVec) {
+	return Math.sqrt(termVec.termFrequency);
+};
+
+/**
+ * @param {number} distance
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.sloppyFreq = function (distance) {
+	return 1.0 / (distance + 1);
+};
+
+/**
+ * @param {TermVector} termVec
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.idf = function (termVec) {
+	return Math.log(termVec.totalDocuments / (termVec.documentFrequency + 1)) + 1.0;
+};
+
+/**
+ * @param {number} overlap
+ * @param {number} maxOverlap
+ * @return {number}
+ */
+
+DefaultSimilarity.prototype.coord = function (overlap, maxOverlap) {
+	return overlap / maxOverlap;
+};
+
+
+exports.DefaultSimilarity = DefaultSimilarity;
+
+/**
+ * @constructor
+ * @param {DocumentID} id
+ * @param {Array.<TermVector>} [terms]
+ */
+
+function DocumentTerms(id, terms) {
+	this.id = id;
+	this.terms = terms || [];
+}
+
+/**
+ * @type {DocumentID}
+ */
+
+DocumentTerms.prototype.id;
+
+/**
+ * @type {Array.<TermVector>}
+ */
+
+DocumentTerms.prototype.terms = [];
+
+/**
+ * @type {number}
+ */
+
+DocumentTerms.prototype.sumOfSquaredWeights = 0;
+
+/**
+ * @type {number}
+ */
+
+DocumentTerms.prototype.score = 0;
+
+
+exports.DocumentTerms = DocumentTerms;
+
+/**
+ * @constructor
+ * @implements {Query}
+ * @param {Query} query
+ * @param {function(DocumentTerms)} filter
+ * @param {number} [boost]
+ */
+
+function FilterQuery(query, filter, boost) {
+	this.query = query;
+	this.filter = filter;
+	this.boost = boost || 1.0;
+};
+
+/**
+ * @type {Query}
+ */
+
+FilterQuery.prototype.query;
+
+/**
+ * @type {function(DocumentTerms)}
+ */
+
+FilterQuery.prototype.filter;
+
+/**
+ * @type {number}
+ */
+
+FilterQuery.prototype.boost = 1.0;
+
+/**
+ * @param {Similarity} similarity
+ * @param {Index} index
+ * @return {ReadableStream}
+ */
+
+FilterQuery.prototype.score = function (similarity, index) {
+	var scorer = new FilterScorer(this, similarity);
+	this.query.score(similarity, index).pipe(scorer);
+	return scorer;
+};
+
+/**
+ * @return {Array.<TermVectorEntry>}
+ */
+
+FilterQuery.prototype.extractTerms = function () {
+	return this.query.extractTerms();
+};
+
+/**
+ * @return {Query}
+ */
+
+FilterQuery.prototype.rewrite = function () {
+	var oldQuery;
+	do {
+		oldQuery = this.query;
+		this.query = this.query.rewrite();
+	} while (this.query !== oldQuery);
+	return this;
+};
+
+
+/**
+ * @protected
+ * @constructor
+ * @extends {Stream}
+ * @implements {ReadableStream}
+ * @implements {WritableStream}
+ * @param {FilterQuery} query
+ * @param {Similarity} similarity
+ */
+
+function FilterScorer(query, similarity) {
+	Stream.call(this);
+	this._query = query;
+	this._similarity = similarity;
+	this._maxOverlap = query.extractTerms().length;
+}
+
+FilterScorer.prototype = Object.create(Stream.prototype);
+
+/**
+ * @protected
+ * @type {FilterQuery}
+ */
+
+FilterScorer.prototype._query;
+
+/**
+ * @protected
+ * @type {Similarity}
+ */
+
+FilterScorer.prototype._similarity;
+
+/**
+ * @protected
+ * @type {number}
+ */
+
+FilterScorer.prototype._maxOverlap;
+
+FilterScorer.prototype.readable = true;
+
+FilterScorer.prototype.writable = true;
+
+/**
+ * @param {DocumentTerms} doc
+ */
+
+FilterScorer.prototype.write = function (doc) {
+	if (this._query.filter(doc)) {
+		doc.score *= this._query.boost;
+		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
+		this.emit('data', doc);
+	}
+};
+
+/**
+ * @param {DocumentTerms} [doc]
+ */
+
+FilterScorer.prototype.end = function (doc) {
+	if (typeof doc !== "undefined") {
+		this.write(doc);
+	}
+	this.emit('end');
+	this.destroy();
+};
+
+
+exports.FilterQuery = FilterQuery;
 
 /**
  * @constructor
@@ -1399,7 +1699,8 @@ BooleanScorer.prototype.write = function () {
 	}
 	
 	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
-		doc.sumOfSquaredWeights *= this._query.boost;
+		doc.score *= this._query.boost;
+		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
 		this.emit('data', doc);
 	}
 	
@@ -1480,227 +1781,6 @@ BooleanClauseStream.prototype.collector;
 
 
 exports.BooleanQuery = BooleanQuery;
-
-/**
- * @constructor
- * @implements {Similarity}
- */
-
-var DefaultSimilarity = function () {};
-
-/**
- * @param {TermVector} termVec
- * @return {number}
- */
-
-DefaultSimilarity.prototype.norm = function (termVec) {
-	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTokens));
-};
-
-/**
- * @param {DocumentTerms} doc
- * @return {number}
- */
-
-DefaultSimilarity.prototype.queryNorm = function (doc) {
-	return 1.0 / Math.sqrt(doc.sumOfSquaredWeights);
-};
-
-/**
- * @param {TermVector} termVec
- * @return {number}
- */
-
-DefaultSimilarity.prototype.tf = function (termVec) {
-	return Math.sqrt(termVec.termFrequency);
-};
-
-/**
- * @param {number} distance
- * @return {number}
- */
-
-DefaultSimilarity.prototype.sloppyFreq = function (distance) {
-	return 1.0 / (distance + 1);
-};
-
-/**
- * @param {TermVector} termVec
- * @return {number}
- */
-
-DefaultSimilarity.prototype.idf = function (termVec) {
-	return Math.log(termVec.totalDocuments / (termVec.documentFrequency + 1)) + 1.0;
-};
-
-/**
- * @param {number} overlap
- * @param {number} maxOverlap
- * @return {number}
- */
-
-DefaultSimilarity.prototype.coord = function (overlap, maxOverlap) {
-	return overlap / maxOverlap;
-};
-
-
-exports.DefaultSimilarity = DefaultSimilarity;
-
-/**
- * @constructor
- * @param {DocumentID} id
- * @param {Array.<TermVector>} [terms]
- */
-
-function DocumentTerms(id, terms) {
-	this.id = id;
-	this.terms = terms || [];
-}
-
-/**
- * @type {DocumentID}
- */
-
-DocumentTerms.prototype.id;
-
-/**
- * @type {Array.<TermVector>}
- */
-
-DocumentTerms.prototype.terms = [];
-
-/**
- * @type {number}
- */
-
-DocumentTerms.prototype.sumOfSquaredWeights = 0;
-
-/**
- * @type {number}
- */
-
-DocumentTerms.prototype.score = 0;
-
-
-exports.DocumentTerms = DocumentTerms;
-
-/**
- * Used only by Searcher. Do not include this in your queries.
- * 
- * @constructor
- * @implements {Query}
- * @param {Query} query
- */
-
-function NormalizedQuery(query) {
-	this.query = query;
-};
-
-/**
- * @type {Query}
- */
-
-NormalizedQuery.prototype.query;
-
-/**
- * @type {number}
- */
-
-NormalizedQuery.prototype.boost = 1.0;
-
-/**
- * @param {Similarity} similarity
- * @param {Index} index
- * @return {ReadableStream}
- */
-
-NormalizedQuery.prototype.score = function (similarity, index) {
-	var scorer = new NormalizedScorer(this, similarity);
-	this.query.score(similarity, index).pipe(scorer);
-	return scorer;
-};
-
-/**
- * @return {Array.<TermVectorEntry>}
- */
-
-NormalizedQuery.prototype.extractTerms = function () {
-	return this.query.extractTerms();
-};
-
-/**
- * @return {Query}
- */
-
-NormalizedQuery.prototype.rewrite = function () {
-	var oldQuery;
-	do {
-		oldQuery = this.query;
-		this.query = this.query.rewrite();
-	} while (this.query !== oldQuery);
-	return this;
-};
-
-
-/**
- * @protected
- * @constructor
- * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
- * @param {NormalizedQuery} query
- * @param {Similarity} similarity
- */
-
-function NormalizedScorer(query, similarity) {
-	Stream.call(this);
-	this._similarity = similarity;
-	this._maxOverlap = query.extractTerms().length;
-}
-
-NormalizedScorer.prototype = Object.create(Stream.prototype);
-
-/**
- * @protected
- * @type {Similarity}
- */
-
-NormalizedScorer.prototype._similarity;
-
-/**
- * @protected
- * @type {number}
- */
-
-NormalizedScorer.prototype._maxOverlap;
-
-NormalizedScorer.prototype.readable = true;
-
-NormalizedScorer.prototype.writable = true;
-
-/**
- * @param {DocumentTerms} doc
- */
-
-NormalizedScorer.prototype.write = function (doc) {
-	doc.score *= this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
-	this.emit('data', doc);
-};
-
-/**
- * @param {DocumentTerms} [doc]
- */
-
-NormalizedScorer.prototype.end = function (doc) {
-	if (typeof doc !== "undefined") {
-		this.write(doc);
-	}
-	this.emit('end');
-	this.destroy();
-};
-
-
-exports.NormalizedQuery = NormalizedQuery;
 
 /**
  * @constructor
@@ -2870,62 +2950,130 @@ TermScorer.prototype.end = function (termVec) {
 exports.TermQuery = TermQuery;
 
 /**
+ * Used only by Searcher. Do not include this in your queries.
+ * 
  * @constructor
- * @extends {Collector}
- * @param {number} max
- * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
+ * @implements {Query}
+ * @param {Query} query
+ * @param {number} [boost]
  */
 
-function TopDocumentsCollector(max, callback) {
-	Collector.call(this, callback);
-	this.max = max || 1;
+function NormalizedQuery(query, boost) {
+	this.query = query;
+	this.boost = boost || 1.0;
 };
 
 /**
- * @param {DocumentTerms} a
- * @param {DocumentTerms} b
- * @return {number}
+ * @type {Query}
  */
 
-TopDocumentsCollector.compareScores = function (a, b) {
-	return b.score - a.score;
-};
-
-TopDocumentsCollector.prototype = Object.create(Collector.prototype);
-
-/**
- * @type {Array.<DocumentTerms>}
- * @override
- */
-
-TopDocumentsCollector.prototype.collection;
+NormalizedQuery.prototype.query;
 
 /**
  * @type {number}
  */
 
-TopDocumentsCollector.prototype.max;
+NormalizedQuery.prototype.boost = 1.0;
 
 /**
+ * @param {Similarity} similarity
+ * @param {Index} index
+ * @return {ReadableStream}
+ */
+
+NormalizedQuery.prototype.score = function (similarity, index) {
+	var scorer = new NormalizedScorer(this, similarity);
+	this.query.score(similarity, index).pipe(scorer);
+	return scorer;
+};
+
+/**
+ * @return {Array.<TermVectorEntry>}
+ */
+
+NormalizedQuery.prototype.extractTerms = function () {
+	return this.query.extractTerms();
+};
+
+/**
+ * @return {Query}
+ */
+
+NormalizedQuery.prototype.rewrite = function () {
+	var oldQuery;
+	do {
+		oldQuery = this.query;
+		this.query = this.query.rewrite();
+	} while (this.query !== oldQuery);
+	return this;
+};
+
+
+/**
+ * @protected
+ * @constructor
+ * @extends {Stream}
+ * @implements {ReadableStream}
+ * @implements {WritableStream}
+ * @param {NormalizedQuery} query
+ * @param {Similarity} similarity
+ */
+
+function NormalizedScorer(query, similarity) {
+	Stream.call(this);
+	this._query = query;
+	this._similarity = similarity;
+	this._maxOverlap = query.extractTerms().length;
+}
+
+NormalizedScorer.prototype = Object.create(Stream.prototype);
+
+/**
+ * @protected
+ * @type {NormalizedQuery}
+ */
+
+NormalizedScorer.prototype._query;
+
+/**
+ * @protected
+ * @type {Similarity}
+ */
+
+NormalizedScorer.prototype._similarity;
+
+/**
+ * @protected
  * @type {number}
  */
 
-TopDocumentsCollector.prototype.lowestScore = 0;
+NormalizedScorer.prototype._maxOverlap;
+
+NormalizedScorer.prototype.readable = true;
+
+NormalizedScorer.prototype.writable = true;
 
 /**
  * @param {DocumentTerms} doc
- * @override
  */
 
-TopDocumentsCollector.prototype.write = function (doc) {
-	if (this.collection.length < this.max || doc.score > this.lowestScore) {
-		if (this.collection.length >= this.max) {
-			this.collection.pop();  //remove lowest scored document
-		}
-		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
-		this.lowestScore = this.collection[this.collection.length - 1].score;
+NormalizedScorer.prototype.write = function (doc) {
+	doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
+	//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
+	this.emit('data', doc);
+};
+
+/**
+ * @param {DocumentTerms} [doc]
+ */
+
+NormalizedScorer.prototype.end = function (doc) {
+	if (typeof doc !== "undefined") {
+		this.write(doc);
 	}
+	this.emit('end');
+	this.destroy();
 };
 
 
-exports.TopDocumentsCollector = TopDocumentsCollector;
+exports.NormalizedQuery = NormalizedQuery;

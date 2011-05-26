@@ -103,6 +103,15 @@ Index.prototype.setTermIndexer = function (indexer, callback) {};
 Index.prototype.getTermVectors = function (term, field) {};
 
 /**
+ * @param {string|null} field
+ * @param {string} startTerm
+ * @param {string} endTerm
+ * @return {ReadableStream}
+ */
+
+Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm) {};
+
+/**
  * @interface
  */
 
@@ -231,21 +240,6 @@ function TermIndexer() {};
  */
 
 TermIndexer.prototype.index = function (doc, id) {};
-
-/**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
- * @return {number}
- */
-
-TermIndexer.prototype.compareDocumentIds = function (a, b) {};
-
-/**
- * @param {TermVectorEntry} entry
- * @return {TermVector}
- */
-
-TermIndexer.prototype.toTermVector = function (entry) {};
 
 /**
  * @return {String}

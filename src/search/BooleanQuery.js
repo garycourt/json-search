@@ -249,7 +249,8 @@ BooleanScorer.prototype.write = function () {
 	}
 	
 	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
-		doc.sumOfSquaredWeights *= this._query.boost;
+		doc.score *= this._query.boost;
+		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
 		this.emit('data', doc);
 	}
 	
