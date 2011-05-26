@@ -51,15 +51,15 @@ MemoryIndex.prototype.generateID = function () {
  */
 
 MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
-	var termVecEnts, i, il, vecKey;
-	termVecEnts = this._termIndexer.index(doc, id);
+	var entry, i, il, key;
+	entry = this._termIndexer.index(doc, id);
 	
-	for (i = 0, il = termVecEnts.length; i < il; ++i) {
-		vecKey = JSON.stringify([termVecEnts[i].term, termVecEnts[i].field]);
-		if (!this._index[vecKey]) {
-			this._index[vecKey] = [ termVecEnts[i] ];
+	for (i = 0, il = entry.length; i < il; ++i) {
+		key = JSON.stringify([entry[i].term, entry[i].field]);
+		if (!this._index[key]) {
+			this._index[key] = [ entry[i] ];
 		} else {
-			Array.orderedInsert(this._index[vecKey], termVecEnts[i], this._termIndexer.compareDocumentIds);
+			Array.orderedInsert(this._index[key], entry[i], this._termIndexer.compareDocumentIds);
 		}
 	}
 	
@@ -125,8 +125,8 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
  */
 
 MemoryIndex.prototype.getTermVectors = function (term, field) {
-	var vecKey = JSON.stringify([term, field]),
-		entries = this._index[vecKey] || [],
+	var key = JSON.stringify([term, field]),
+		entries = this._index[key] || [],
 		self = this,
 		stream = new ArrayStream(entries, function (entry) {
 			var termVector = self._termIndexer.toTermVector(entry);
