@@ -78,43 +78,6 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 };
 
 /**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
- * @return {number}
- */
-
-DefaultTermIndexer.prototype.compareDocumentIds = function (a, b) {
-	if (a.documentID < b.documentID) {
-		return -1;
-	} else if (a.documentID > b.documentID) {
-		return 1;
-	} 
-	//else
-	return 0;
-};
-
-/**
- * @param {TermVectorEntry} entry
- * @return {TermVector}
- */
-
-DefaultTermIndexer.prototype.toTermVector = function (entry) {
-	return /** @type {TermVector} */ ({
-		term : entry.term,
-		termFrequency : entry.termFrequency || 1,
-		termPositions : entry.termPositions || null,
-		termOffsets : entry.termOffsets || null,
-		field : entry.field || null,
-		fieldBoost : entry.fieldBoost || 1.0,
-		totalFieldTokens : entry.totalFieldTokens || 1,
-		documentBoost : entry.fieldBoost || 1.0,
-		documentID : entry.documentID,
-		documentFrequency : 1,
-		totalDocuments : 1
-	});
-};
-
-/**
  * @return {String}
  */
 

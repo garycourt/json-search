@@ -9,6 +9,22 @@ function MemoryIndex() {
 };
 
 /**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+MemoryIndex.documentIDComparator = function (a, b) {
+	if (a.documentID < b.documentID) {
+		return -1;
+	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
+/**
  * @protected
  * @type {Object}
  */
@@ -59,7 +75,7 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 		if (!this._index[key]) {
 			this._index[key] = [ entry[i] ];
 		} else {
-			Array.orderedInsert(this._index[key], entry[i], this._termIndexer.compareDocumentIds);
+			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
 	}
 	
@@ -129,10 +145,19 @@ MemoryIndex.prototype.getTermVectors = function (term, field) {
 		entries = this._index[key] || [],
 		self = this,
 		stream = new ArrayStream(entries, function (entry) {
-			var termVector = self._termIndexer.toTermVector(entry);
-			termVector.documentFrequency = entries.length;
-			termVector.totalDocuments = self._docCount;
-			return termVector;
+			return /** @type {TermVector} */ ({
+				term : entry.term,
+				termFrequency : entry.termFrequency || 1,
+				termPositions : entry.termPositions || null,
+				termOffsets : entry.termOffsets || null,
+				field : entry.field || null,
+				fieldBoost : entry.fieldBoost || 1.0,
+				totalFieldTokens : entry.totalFieldTokens || 1,
+				documentBoost : entry.fieldBoost || 1.0,
+				documentID : entry.documentID,
+				documentFrequency : entries.length,
+				totalDocuments : self._docCount
+			});
 		});
 	return stream.start();
 };
