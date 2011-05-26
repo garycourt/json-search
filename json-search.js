@@ -118,7 +118,7 @@ if (typeof Array.orderedInsert !== "function") {
 			end = arr.length - 1;
 			pivot = Math.floor(end / 2);
 			
-			while ((end - start) > 0) {
+			while (start < end) {
 				if (comparator(arr[pivot], obj) <= 0) {
 					start = pivot + 1;
 				} else {
@@ -127,10 +127,14 @@ if (typeof Array.orderedInsert !== "function") {
 				pivot = Math.round(start + ((end - start) / 2));
 			}
 			
-			if (comparator(arr[pivot], obj) <= 0) {
-				arr.splice(pivot + 1, 0, obj);
+			if (start === end) {
+				if (comparator(arr[start], obj) <= 0) {
+					arr.splice(start + 1, 0, obj);
+				} else {
+					arr.splice(start, 0, obj);
+				}
 			} else {
-				arr.splice(pivot, 0, obj);
+				arr.splice(end + 1, 0, obj);
 			}
 		}
 	};
@@ -849,7 +853,7 @@ function DefaultTermIndexer() {};
  * @return {Array.<TermVectorEntry>}
  */
 
-DefaultTermIndexer.prototype.index = function (doc, field) {
+DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	var terms,
 		entries,
 		key,
@@ -862,7 +866,8 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 	case 'number':
 		result[0] = /** @type {TermVectorEntry} */ ({
 				term : doc,
-				field : field
+				field : field,
+				documentID : id
 		});
 		break;
 		
@@ -876,15 +881,16 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 					term : terms[key],
 					termFrequency : 1,
 					termPositions : [key],
-					termOffsets : [key],  //FIXME
+					//termOffsets : [key],  //FIXME
 					field : field,
-					totalFieldTokens : terms.length
+					totalFieldTokens : terms.length,
+					documentID : id
 				});
 			} else {
 				//TODO: Optimize
 				entries[terms[key]].termFrequency++;
 				entries[terms[key]].termPositions.push(key);
-				entries[terms[key]].termOffsets.push(key);  //FIXME
+				//entries[terms[key]].termOffsets.push(key);  //FIXME
 			}
 		}
 		
@@ -898,19 +904,56 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 	case 'object':
 		for (key in doc) {
 			if (doc[key] !== O[key]) {
-				result = result.concat(this.index(doc[key], (field ? field + "." + key : key)));
+				result = result.concat(this.index(doc[key], id, (field ? field + "." + key : key)));
 			}
 		}
 		break;
 	
 	case 'array':
 		for (key = 0; key < doc.length; ++key) {
-			result = result.concat(this.index(doc[key], (field ? field + "." + key : String(key))));
+			result = result.concat(this.index(doc[key], id, (field ? field + "." + key : String(key))));
 		}
 		break;
 	}
 	
 	return result;
+};
+
+/**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+DefaultTermIndexer.prototype.compareDocumentIds = function (a, b) {
+	if (a.documentID < b.documentID) {
+		return -1;
+	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
+/**
+ * @param {TermVectorEntry} entry
+ * @return {TermVector}
+ */
+
+DefaultTermIndexer.prototype.toTermVector = function (entry) {
+	return /** @type {TermVector} */ ({
+		term : entry.term,
+		termFrequency : entry.termFrequency || 1,
+		termPositions : entry.termPositions || null,
+		termOffsets : entry.termOffsets || null,
+		field : entry.field || null,
+		fieldBoost : entry.fieldBoost || 1.0,
+		totalFieldTokens : entry.totalFieldTokens || 1,
+		documentBoost : entry.fieldBoost || 1.0,
+		documentID : entry.documentID,
+		documentFrequency : 1,
+		totalDocuments : 1
+	});
 };
 
 /**
@@ -931,23 +974,7 @@ exports.DefaultTermIndexer = DefaultTermIndexer;
 
 function MemoryIndex() {
 	this._docs = {};
-	this._termVecs = {};
-};
-
-/**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
- * @return {number}
- */
-
-MemoryIndex.documentIDComparator = function (a, b) {
-	if (a.documentID < b.documentID) {
-		return -1;
-	} else if (a.documentID > b.documentID) {
-		return 1;
-	} 
-	//else
-	return 0;
+	this._index = {};
 };
 
 /**
@@ -969,7 +996,7 @@ MemoryIndex.prototype._docCount = 0;
  * @type {Object.<Array.<TermVectorEntry>>}
  */
 
-MemoryIndex.prototype._termVecs;
+MemoryIndex.prototype._index;
 
 /**
  * @protected
@@ -988,12 +1015,35 @@ MemoryIndex.prototype.generateID = function () {
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
+ * @param {function(PossibleError)} [callback]
+ */
+
+MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
+	var termVecEnts, i, il, vecKey;
+	termVecEnts = this._termIndexer.index(doc, id);
+	
+	for (i = 0, il = termVecEnts.length; i < il; ++i) {
+		vecKey = JSON.stringify([termVecEnts[i].term, termVecEnts[i].field]);
+		if (!this._index[vecKey]) {
+			this._index[vecKey] = [ termVecEnts[i] ];
+		} else {
+			Array.orderedInsert(this._index[vecKey], termVecEnts[i], this._termIndexer.compareDocumentIds);
+		}
+	}
+	
+	if (callback) {
+		callback(null);
+	}
+};
+
+/**
+ * @param {Object} doc
  * @param {DocumentID|null} [id]
  * @param {function(PossibleError)} [callback]
  */
 
 MemoryIndex.prototype.addDocument = function (doc, id, callback) {
-	var termVecEnts, i, il, vecKey;
 	if (typeof id === "undefined" || typeOf(id) === "null") {
 		id = this.generateID();
 	} else {
@@ -1002,21 +1052,8 @@ MemoryIndex.prototype.addDocument = function (doc, id, callback) {
 	
 	this._docs[id] = doc;
 	this._docCount++;
-	termVecEnts = this._termIndexer.index(doc);
 	
-	for (i = 0, il = termVecEnts.length; i < il; ++i) {
-		termVecEnts[i].documentID = id;
-		vecKey = JSON.stringify([termVecEnts[i].term, termVecEnts[i].field]);
-		if (!this._termVecs[vecKey]) {
-			this._termVecs[vecKey] = [ termVecEnts[i] ];
-		} else {
-			Array.orderedInsert(this._termVecs[vecKey], termVecEnts[i], MemoryIndex.documentIDComparator);
-		}
-	}
-	
-	if (callback) {
-		callback(null);
-	}
+	this.indexDocument(doc, id, callback);
 };
 
 /**
@@ -1030,10 +1067,24 @@ MemoryIndex.prototype.getDocument = function (id, callback) {
 
 /**
  * @param {TermIndexer} indexer
+ * @param {function(PossibleError)} [callback]
  */
 
-MemoryIndex.prototype.setTermIndexer = function (indexer) {
+MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
+	var docs = this._docs, id;
 	this._termIndexer = indexer;
+	
+	//reindex all documents
+	this._index = {};
+	for (id in docs) {
+		if (docs.hasOwnProperty(id)) {
+			this.indexDocument(docs[id], id);
+		}
+	}
+	
+	if (callback) {
+		callback(null);
+	}
 };
 
 /**
@@ -1044,22 +1095,13 @@ MemoryIndex.prototype.setTermIndexer = function (indexer) {
 
 MemoryIndex.prototype.getTermVectors = function (term, field) {
 	var vecKey = JSON.stringify([term, field]),
-		entries = this._termVecs[vecKey] || [],
+		entries = this._index[vecKey] || [],
 		self = this,
-		stream = new ArrayStream(entries, function (termVecEnt) {
-			return /** @type {TermVector} */ ({
-				term : termVecEnt.term,
-				termFrequency : termVecEnt.termFrequency || 1,
-				termPositions : termVecEnt.termPositions || [0],
-				termOffsets : termVecEnt.termOffsets || [0],
-				field : termVecEnt.field || null,
-				fieldBoost : termVecEnt.fieldBoost || 1.0,
-				totalFieldTokens : termVecEnt.totalFieldTokens || 1,
-				documentBoost : termVecEnt.fieldBoost || 1.0,
-				documentID : termVecEnt.documentID,
-				documentFrequency : entries.length,
-				totalDocuments : self._docCount
-			});
+		stream = new ArrayStream(entries, function (entry) {
+			var termVector = self._termIndexer.toTermVector(entry);
+			termVector.documentFrequency = entries.length;
+			termVector.totalDocuments = self._docCount;
+			return termVector;
 		});
 	return stream.start();
 };

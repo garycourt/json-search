@@ -18,19 +18,19 @@ TermVector.prototype.term;
 TermVector.prototype.termFrequency;
 
 /**
- * @type {Array.<number>}
+ * @type {Array.<number>|null}
  */
 
 TermVector.prototype.termPositions;
 
 /**
- * @type {Array.<number>}
+ * @type {Array.<number>|null}
  */
 
 TermVector.prototype.termOffsets;
 
 /**
- * @type {string}
+ * @type {string|null}
  */
 
 TermVector.prototype.field;

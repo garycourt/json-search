@@ -6,6 +6,14 @@ function Index() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
+ * @param {function(PossibleError)} [callback]
+ */
+
+Index.prototype.indexDocument = function (doc, id, callback) {};
+
+/**
+ * @param {Object} doc
  * @param {DocumentID|null} [id]
  * @param {function(PossibleError)} [callback]
  */
@@ -21,9 +29,10 @@ Index.prototype.getDocument = function (id, callback) {};
 
 /**
  * @param {TermIndexer} indexer
+ * @param {function(PossibleError)} [callback]
  */
 
-Index.prototype.setTermIndexer = function (indexer) {};
+Index.prototype.setTermIndexer = function (indexer, callback) {};
 
 /**
  * @param {string} term

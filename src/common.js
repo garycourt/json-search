@@ -118,7 +118,7 @@ if (typeof Array.orderedInsert !== "function") {
 			end = arr.length - 1;
 			pivot = Math.floor(end / 2);
 			
-			while ((end - start) > 0) {
+			while (start < end) {
 				if (comparator(arr[pivot], obj) <= 0) {
 					start = pivot + 1;
 				} else {
@@ -127,10 +127,14 @@ if (typeof Array.orderedInsert !== "function") {
 				pivot = Math.round(start + ((end - start) / 2));
 			}
 			
-			if (comparator(arr[pivot], obj) <= 0) {
-				arr.splice(pivot + 1, 0, obj);
+			if (start === end) {
+				if (comparator(arr[start], obj) <= 0) {
+					arr.splice(start + 1, 0, obj);
+				} else {
+					arr.splice(start, 0, obj);
+				}
 			} else {
-				arr.splice(pivot, 0, obj);
+				arr.splice(end + 1, 0, obj);
 			}
 		}
 	};

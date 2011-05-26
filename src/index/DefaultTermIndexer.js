@@ -11,7 +11,7 @@ function DefaultTermIndexer() {};
  * @return {Array.<TermVectorEntry>}
  */
 
-DefaultTermIndexer.prototype.index = function (doc, field) {
+DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	var terms,
 		entries,
 		key,
@@ -24,7 +24,8 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 	case 'number':
 		result[0] = /** @type {TermVectorEntry} */ ({
 				term : doc,
-				field : field
+				field : field,
+				documentID : id
 		});
 		break;
 		
@@ -38,15 +39,16 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 					term : terms[key],
 					termFrequency : 1,
 					termPositions : [key],
-					termOffsets : [key],  //FIXME
+					//termOffsets : [key],  //FIXME
 					field : field,
-					totalFieldTokens : terms.length
+					totalFieldTokens : terms.length,
+					documentID : id
 				});
 			} else {
 				//TODO: Optimize
 				entries[terms[key]].termFrequency++;
 				entries[terms[key]].termPositions.push(key);
-				entries[terms[key]].termOffsets.push(key);  //FIXME
+				//entries[terms[key]].termOffsets.push(key);  //FIXME
 			}
 		}
 		
@@ -60,19 +62,56 @@ DefaultTermIndexer.prototype.index = function (doc, field) {
 	case 'object':
 		for (key in doc) {
 			if (doc[key] !== O[key]) {
-				result = result.concat(this.index(doc[key], (field ? field + "." + key : key)));
+				result = result.concat(this.index(doc[key], id, (field ? field + "." + key : key)));
 			}
 		}
 		break;
 	
 	case 'array':
 		for (key = 0; key < doc.length; ++key) {
-			result = result.concat(this.index(doc[key], (field ? field + "." + key : String(key))));
+			result = result.concat(this.index(doc[key], id, (field ? field + "." + key : String(key))));
 		}
 		break;
 	}
 	
 	return result;
+};
+
+/**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+DefaultTermIndexer.prototype.compareDocumentIds = function (a, b) {
+	if (a.documentID < b.documentID) {
+		return -1;
+	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
+/**
+ * @param {TermVectorEntry} entry
+ * @return {TermVector}
+ */
+
+DefaultTermIndexer.prototype.toTermVector = function (entry) {
+	return /** @type {TermVector} */ ({
+		term : entry.term,
+		termFrequency : entry.termFrequency || 1,
+		termPositions : entry.termPositions || null,
+		termOffsets : entry.termOffsets || null,
+		field : entry.field || null,
+		fieldBoost : entry.fieldBoost || 1.0,
+		totalFieldTokens : entry.totalFieldTokens || 1,
+		documentBoost : entry.fieldBoost || 1.0,
+		documentID : entry.documentID,
+		documentFrequency : 1,
+		totalDocuments : 1
+	});
 };
 
 /**

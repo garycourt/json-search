@@ -66,6 +66,14 @@ function Index() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
+ * @param {function(PossibleError)} [callback]
+ */
+
+Index.prototype.indexDocument = function (doc, id, callback) {};
+
+/**
+ * @param {Object} doc
  * @param {DocumentID|null} [id]
  * @param {function(PossibleError)} [callback]
  */
@@ -81,9 +89,10 @@ Index.prototype.getDocument = function (id, callback) {};
 
 /**
  * @param {TermIndexer} indexer
+ * @param {function(PossibleError)} [callback]
  */
 
-Index.prototype.setTermIndexer = function (indexer) {};
+Index.prototype.setTermIndexer = function (indexer, callback) {};
 
 /**
  * @param {string} term
@@ -217,10 +226,26 @@ function TermIndexer() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
  * @return {Array.<TermVectorEntry>}
  */
 
-TermIndexer.prototype.index = function (doc) {};
+TermIndexer.prototype.index = function (doc, id) {};
+
+/**
+ * @param {TermVectorEntry} a
+ * @param {TermVectorEntry} b
+ * @return {number}
+ */
+
+TermIndexer.prototype.compareDocumentIds = function (a, b) {};
+
+/**
+ * @param {TermVectorEntry} entry
+ * @return {TermVector}
+ */
+
+TermIndexer.prototype.toTermVector = function (entry) {};
 
 /**
  * @return {String}
@@ -248,19 +273,19 @@ TermVector.prototype.term;
 TermVector.prototype.termFrequency;
 
 /**
- * @type {Array.<number>}
+ * @type {Array.<number>|null}
  */
 
 TermVector.prototype.termPositions;
 
 /**
- * @type {Array.<number>}
+ * @type {Array.<number>|null}
  */
 
 TermVector.prototype.termOffsets;
 
 /**
- * @type {string}
+ * @type {string|null}
  */
 
 TermVector.prototype.field;
