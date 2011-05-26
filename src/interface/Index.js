@@ -46,7 +46,9 @@ Index.prototype.getTermVectors = function (term, field) {};
  * @param {string|null} field
  * @param {string} startTerm
  * @param {string} endTerm
+ * @param {boolean} [excludeStart]
+ * @param {boolean} [excludeEnd]
  * @return {ReadableStream}
  */
 
-Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm) {};
+Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {};

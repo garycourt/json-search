@@ -68,7 +68,7 @@ TermQuery.prototype.rewrite = function () {
  * @extends {Stream}
  * @implements {ReadableStream}
  * @implements {WritableStream}
- * @param {TermQuery} query
+ * @param {Query} query
  * @param {Similarity} similarity
  */
 

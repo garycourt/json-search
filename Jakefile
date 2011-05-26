@@ -77,7 +77,9 @@ function compileDirs(dirs, output, callback) {
 				if (b === 'EventEmitter.js') { return 1; }
 				if (a === 'Stream.js') { return -1; }
 				if (b === 'Stream.js') { return 1; }
-				return a - b;
+				if (a < b) { return -1; }
+				if (a > b) { return 1; }
+				return 0;
 			}).map((function (dir, file) {
 				return dir + file;
 			}).bind(this, dirs[x])));

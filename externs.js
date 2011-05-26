@@ -106,10 +106,12 @@ Index.prototype.getTermVectors = function (term, field) {};
  * @param {string|null} field
  * @param {string} startTerm
  * @param {string} endTerm
+ * @param {boolean} [excludeStart]
+ * @param {boolean} [excludeEnd]
  * @return {ReadableStream}
  */
 
-Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm) {};
+Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {};
 
 /**
  * @interface
@@ -381,18 +383,6 @@ TermVectorEntry.prototype.documentBoost;
 TermVectorEntry.prototype.documentID;
 
 /**
- * @typedef {(Error|string|null|undefined)}
- */
-
-var PossibleError;
-
-/**
- * @typedef {(string|number)}
- */
-
-var DocumentID;
-
-/**
  * @interface
  * @extends {Emitter}
  */
@@ -422,3 +412,15 @@ WritableStream.prototype.end = function (data) {};
  */
 
 WritableStream.prototype.destroy = function () {};
+
+/**
+ * @typedef {(Error|string|null|undefined)}
+ */
+
+var PossibleError;
+
+/**
+ * @typedef {(string|number)}
+ */
+
+var DocumentID;
