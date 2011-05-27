@@ -37,7 +37,7 @@ NormalizedQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 NormalizedQuery.prototype.extractTerms = function () {

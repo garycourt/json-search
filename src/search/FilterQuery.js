@@ -43,7 +43,7 @@ FilterQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 FilterQuery.prototype.extractTerms = function () {

@@ -8,21 +8,21 @@ function DefaultTermIndexer() {};
 /**
  * @param {Object} doc
  * @param {FieldName} [field]
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	var terms,
 		entries,
 		key,
-		/** @type {Array.<TermVectorEntry>} */
+		/** @type {Array.<TermVector>} */
 		result = [];
 	
 	switch (typeOf(doc)) {
 	case 'null':
 	case 'boolean':
 	case 'number':
-		result[0] = /** @type {TermVectorEntry} */ ({
+		result[0] = /** @type {TermVector} */ ({
 				term : doc,
 				field : field || null,
 				documentID : id
@@ -35,7 +35,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 		
 		for (key = 0; key < terms.length; ++key) {
 			if (!entries[terms[key]]) {
-				entries[terms[key]] = /** @type {TermVectorEntry} */ ({
+				entries[terms[key]] = /** @type {TermVector} */ ({
 					term : terms[key],
 					termFrequency : 1,
 					termPositions : [key],

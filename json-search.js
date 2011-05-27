@@ -850,21 +850,21 @@ function DefaultTermIndexer() {};
 /**
  * @param {Object} doc
  * @param {FieldName} [field]
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	var terms,
 		entries,
 		key,
-		/** @type {Array.<TermVectorEntry>} */
+		/** @type {Array.<TermVector>} */
 		result = [];
 	
 	switch (typeOf(doc)) {
 	case 'null':
 	case 'boolean':
 	case 'number':
-		result[0] = /** @type {TermVectorEntry} */ ({
+		result[0] = /** @type {TermVector} */ ({
 				term : doc,
 				field : field || null,
 				documentID : id
@@ -877,7 +877,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 		
 		for (key = 0; key < terms.length; ++key) {
 			if (!entries[terms[key]]) {
-				entries[terms[key]] = /** @type {TermVectorEntry} */ ({
+				entries[terms[key]] = /** @type {TermVector} */ ({
 					term : terms[key],
 					termFrequency : 1,
 					termPositions : [key],
@@ -941,8 +941,8 @@ function MemoryIndex() {
 };
 
 /**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
+ * @param {TermVector} a
+ * @param {TermVector} b
  * @return {number}
  */
 
@@ -972,7 +972,7 @@ MemoryIndex.prototype._docCount = 0;
 
 /**
  * @protected
- * @type {Object.<Array.<TermVectorEntry>>}
+ * @type {Object.<Array.<TermVector>>}
  */
 
 MemoryIndex.prototype._index;
@@ -1076,21 +1076,7 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
-		stream = new ArrayStream(entries, function (entry) {
-			return /** @type {TermVector} */ ({
-				term : entry.term,
-				termFrequency : entry.termFrequency || 1,
-				termPositions : entry.termPositions || null,
-				termOffsets : entry.termOffsets || null,
-				field : entry.field || null,
-				fieldBoost : entry.fieldBoost || 1.0,
-				totalFieldTokens : entry.totalFieldTokens || 1,
-				documentBoost : entry.fieldBoost || 1.0,
-				documentID : entry.documentID,
-				documentFrequency : entries.length,
-				totalDocuments : self._docCount
-			});
-		});
+		stream = new ArrayStream(entries);
 	return stream.start();
 };
 
@@ -1191,7 +1177,7 @@ BooleanQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 BooleanQuery.prototype.extractTerms = function () {
@@ -1496,7 +1482,9 @@ var DefaultSimilarity = function () {};
  */
 
 DefaultSimilarity.prototype.norm = function (termVec) {
-	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTokens));
+	return (termVec.documentBoost || 1.0) * 
+	       (termVec.fieldBoost || 1.0) * 
+	       (1.0 / Math.sqrt(termVec.totalFieldTokens || 1));
 };
 
 /**
@@ -1514,7 +1502,7 @@ DefaultSimilarity.prototype.queryNorm = function (doc) {
  */
 
 DefaultSimilarity.prototype.tf = function (termVec) {
-	return Math.sqrt(termVec.termFrequency);
+	return Math.sqrt(termVec.termFrequency || 1);
 };
 
 /**
@@ -1532,7 +1520,7 @@ DefaultSimilarity.prototype.sloppyFreq = function (distance) {
  */
 
 DefaultSimilarity.prototype.idf = function (termVec) {
-	return Math.log(termVec.totalDocuments / (termVec.documentFrequency + 1)) + 1.0;
+	return Math.log((termVec.totalDocuments || 1) / ((termVec.documentFrequency || 1) + 1)) + 1.0;
 };
 
 /**
@@ -1631,7 +1619,7 @@ FilterQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 FilterQuery.prototype.extractTerms = function () {
@@ -1762,7 +1750,7 @@ NormalizedQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 NormalizedQuery.prototype.extractTerms = function () {
@@ -1903,14 +1891,14 @@ PhraseQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 PhraseQuery.prototype.extractTerms = function () {
 	var x, xl, terms = [];
 	for (x = 0, xl = this.terms.length; x < xl; ++x) {
 		if (typeof this.terms[x] !== "undefined") {
-			terms.push(/** @type {TermVectorEntry} */ ({
+			terms.push(/** @type {TermVector} */ ({
 				term : this.terms[x],
 				field : this.field
 			}));
@@ -1979,11 +1967,11 @@ PrefixQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 PrefixQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVectorEntry} */ ({
+	return [ /** @type {TermVector} */ ({
 		term : this.prefix,
 		field : this.field
 	})];
@@ -3079,11 +3067,11 @@ TermQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 TermQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVectorEntry} */ ({
+	return [ /** @type {TermVector} */ ({
 		term : this.term,
 		field : this.field
 	})];
@@ -3239,11 +3227,11 @@ TermRangeQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 TermRangeQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVectorEntry} */ ({
+	return [ /** @type {TermVector} */ ({
 		term : this.startTerm,
 		field : this.field
 	})];

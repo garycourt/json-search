@@ -9,8 +9,8 @@ function MemoryIndex() {
 };
 
 /**
- * @param {TermVectorEntry} a
- * @param {TermVectorEntry} b
+ * @param {TermVector} a
+ * @param {TermVector} b
  * @return {number}
  */
 
@@ -40,7 +40,7 @@ MemoryIndex.prototype._docCount = 0;
 
 /**
  * @protected
- * @type {Object.<Array.<TermVectorEntry>>}
+ * @type {Object.<Array.<TermVector>>}
  */
 
 MemoryIndex.prototype._index;
@@ -144,21 +144,7 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
-		stream = new ArrayStream(entries, function (entry) {
-			return /** @type {TermVector} */ ({
-				term : entry.term,
-				termFrequency : entry.termFrequency || 1,
-				termPositions : entry.termPositions || null,
-				termOffsets : entry.termOffsets || null,
-				field : entry.field || null,
-				fieldBoost : entry.fieldBoost || 1.0,
-				totalFieldTokens : entry.totalFieldTokens || 1,
-				documentBoost : entry.fieldBoost || 1.0,
-				documentID : entry.documentID,
-				documentFrequency : entries.length,
-				totalDocuments : self._docCount
-			});
-		});
+		stream = new ArrayStream(entries);
 	return stream.start();
 };
 

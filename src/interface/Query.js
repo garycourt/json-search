@@ -19,7 +19,7 @@ Query.prototype.boost;
 Query.prototype.score = function (similarity, index) {};
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 Query.prototype.extractTerms = function () {};

@@ -49,14 +49,14 @@ PhraseQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 PhraseQuery.prototype.extractTerms = function () {
 	var x, xl, terms = [];
 	for (x = 0, xl = this.terms.length; x < xl; ++x) {
 		if (typeof this.terms[x] !== "undefined") {
-			terms.push(/** @type {TermVectorEntry} */ ({
+			terms.push(/** @type {TermVector} */ ({
 				term : this.terms[x],
 				field : this.field
 			}));

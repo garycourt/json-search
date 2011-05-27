@@ -134,7 +134,7 @@ Query.prototype.boost;
 Query.prototype.score = function (similarity, index) {};
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 Query.prototype.extractTerms = function () {};
@@ -238,7 +238,7 @@ function TermIndexer() {};
 /**
  * @param {Object} doc
  * @param {DocumentID} id
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 TermIndexer.prototype.index = function (doc, id) {};
@@ -251,7 +251,6 @@ TermIndexer.prototype.toSource = function () {};
 
 /**
  * @interface
- * @extends {TermVectorEntry}
  */
 
 function TermVector() {};
@@ -263,19 +262,19 @@ function TermVector() {};
 TermVector.prototype.term;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.termFrequency;
 
 /**
- * @type {Array.<number>|null}
+ * @type {Array.<number>|null|undefined}
  */
 
 TermVector.prototype.termPositions;
 
 /**
- * @type {Array.<number>|null}
+ * @type {Array.<number>|null|undefined}
  */
 
 TermVector.prototype.termOffsets;
@@ -287,19 +286,19 @@ TermVector.prototype.termOffsets;
 TermVector.prototype.field;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.fieldBoost;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.totalFieldTokens;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.documentBoost;
@@ -311,76 +310,16 @@ TermVector.prototype.documentBoost;
 TermVector.prototype.documentID;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.documentFrequency;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.totalDocuments;
-
-/**
- * @interface
- */
-
-function TermVectorEntry() {};
-
-/**
- * @type {Term}
- */
-
-TermVectorEntry.prototype.term;
-
-/**
- * @type {number|undefined}
- */
-
-TermVectorEntry.prototype.termFrequency;
-
-/**
- * @type {Array.<number>|undefined}
- */
-
-TermVectorEntry.prototype.termPositions;
-
-/**
- * @type {Array.<number>|undefined}
- */
-
-TermVectorEntry.prototype.termOffsets;
-
-/**
- * @type {FieldName}
- */
-
-TermVectorEntry.prototype.field;
-
-/**
- * @type {number|undefined}
- */
-
-TermVectorEntry.prototype.fieldBoost;
-
-/**
- * @type {number|undefined}
- */
-
-TermVectorEntry.prototype.totalFieldTokens;
-
-/**
- * @type {number|undefined}
- */
-
-TermVectorEntry.prototype.documentBoost;
-
-/**
- * @type {DocumentID|undefined}
- */
-
-TermVectorEntry.prototype.documentID;
 
 /**
  * @interface

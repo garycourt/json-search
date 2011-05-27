@@ -1,6 +1,5 @@
 /**
  * @interface
- * @extends {TermVectorEntry}
  */
 
 function TermVector() {};
@@ -12,19 +11,19 @@ function TermVector() {};
 TermVector.prototype.term;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.termFrequency;
 
 /**
- * @type {Array.<number>|null}
+ * @type {Array.<number>|null|undefined}
  */
 
 TermVector.prototype.termPositions;
 
 /**
- * @type {Array.<number>|null}
+ * @type {Array.<number>|null|undefined}
  */
 
 TermVector.prototype.termOffsets;
@@ -36,19 +35,19 @@ TermVector.prototype.termOffsets;
 TermVector.prototype.field;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.fieldBoost;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.totalFieldTokens;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.documentBoost;
@@ -60,13 +59,13 @@ TermVector.prototype.documentBoost;
 TermVector.prototype.documentID;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.documentFrequency;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 TermVector.prototype.totalDocuments;

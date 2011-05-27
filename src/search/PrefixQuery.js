@@ -41,11 +41,11 @@ PrefixQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 PrefixQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVectorEntry} */ ({
+	return [ /** @type {TermVector} */ ({
 		term : this.prefix,
 		field : this.field
 	})];

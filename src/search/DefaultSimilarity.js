@@ -11,7 +11,9 @@ var DefaultSimilarity = function () {};
  */
 
 DefaultSimilarity.prototype.norm = function (termVec) {
-	return termVec.documentBoost * termVec.fieldBoost * (1.0 / Math.sqrt(termVec.totalFieldTokens));
+	return (termVec.documentBoost || 1.0) * 
+	       (termVec.fieldBoost || 1.0) * 
+	       (1.0 / Math.sqrt(termVec.totalFieldTokens || 1));
 };
 
 /**
@@ -29,7 +31,7 @@ DefaultSimilarity.prototype.queryNorm = function (doc) {
  */
 
 DefaultSimilarity.prototype.tf = function (termVec) {
-	return Math.sqrt(termVec.termFrequency);
+	return Math.sqrt(termVec.termFrequency || 1);
 };
 
 /**
@@ -47,7 +49,7 @@ DefaultSimilarity.prototype.sloppyFreq = function (distance) {
  */
 
 DefaultSimilarity.prototype.idf = function (termVec) {
-	return Math.log(termVec.totalDocuments / (termVec.documentFrequency + 1)) + 1.0;
+	return Math.log((termVec.totalDocuments || 1) / ((termVec.documentFrequency || 1) + 1)) + 1.0;
 };
 
 /**

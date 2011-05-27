@@ -7,7 +7,7 @@ function TermIndexer() {};
 /**
  * @param {Object} doc
  * @param {DocumentID} id
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 TermIndexer.prototype.index = function (doc, id) {};

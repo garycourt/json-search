@@ -40,7 +40,7 @@ BooleanQuery.prototype.score = function (similarity, index) {
 };
 
 /**
- * @return {Array.<TermVectorEntry>}
+ * @return {Array.<TermVector>}
  */
 
 BooleanQuery.prototype.extractTerms = function () {
