@@ -2,7 +2,7 @@
  * @constructor
  * @implements {Query}
  * @param {string} prefix
- * @param {string|null} [field]
+ * @param {FieldName} [field]
  * @param {number} [boost]
  */
 
@@ -19,7 +19,7 @@ function PrefixQuery(prefix, field, boost) {
 PrefixQuery.prototype.prefix;
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 PrefixQuery.prototype.field = null;

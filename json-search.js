@@ -849,7 +849,7 @@ function DefaultTermIndexer() {};
 
 /**
  * @param {Object} doc
- * @param {string} [field]
+ * @param {FieldName} [field]
  * @return {Array.<TermVectorEntry>}
  */
 
@@ -866,7 +866,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	case 'number':
 		result[0] = /** @type {TermVectorEntry} */ ({
 				term : doc,
-				field : field,
+				field : field || null,
 				documentID : id
 		});
 		break;
@@ -920,7 +920,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 };
 
 /**
- * @return {String}
+ * @return {string}
  */
 
 DefaultTermIndexer.prototype.toSource = function () {
@@ -985,7 +985,7 @@ MemoryIndex.prototype._index;
 MemoryIndex.prototype._termIndexer = new DefaultTermIndexer();
 
 /**
- * @return {string}
+ * @return {DocumentID}
  */
 
 MemoryIndex.prototype.generateID = function () {
@@ -1067,8 +1067,8 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 };
 
 /**
- * @param {string|null} field
- * @param {string} term
+ * @param {FieldName} field
+ * @param {Term} term
  * @return {ReadableStream}
  */
 
@@ -1095,9 +1095,9 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
 };
 
 /**
- * @param {string|null} field
- * @param {string} startTerm
- * @param {string} endTerm
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
  * @return {ReadableStream}
@@ -1855,8 +1855,8 @@ exports.NormalizedQuery = NormalizedQuery;
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} [field]
- * @param {Array.<string|undefined>} [terms]
+ * @param {FieldName} [field]
+ * @param {Array.<Term|undefined>} [terms]
  * @param {number} [slop]
  * @param {number} [boost]
  */
@@ -1869,13 +1869,13 @@ function PhraseQuery(field, terms, slop, boost) {
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 PhraseQuery.prototype.field = null;
 
 /**
- * @type {Array.<string|undefined>}
+ * @type {Array.<Term|undefined>}
  */
 
 PhraseQuery.prototype.terms;
@@ -1940,7 +1940,7 @@ exports.PhraseQuery = PhraseQuery;
  * @constructor
  * @implements {Query}
  * @param {string} prefix
- * @param {string|null} [field]
+ * @param {FieldName} [field]
  * @param {number} [boost]
  */
 
@@ -1957,7 +1957,7 @@ function PrefixQuery(prefix, field, boost) {
 PrefixQuery.prototype.prefix;
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 PrefixQuery.prototype.field = null;
@@ -3037,8 +3037,8 @@ exports.Searcher = Searcher;
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} field
- * @param {string} term
+ * @param {FieldName} field
+ * @param {Term} term
  * @param {number} [boost]
  */
 
@@ -3049,13 +3049,13 @@ function TermQuery(field, term, boost) {
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermQuery.prototype.field = null;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermQuery.prototype.term;
@@ -3173,9 +3173,9 @@ exports.TermQuery = TermQuery;
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} field
- * @param {string} startTerm
- * @param {string} endTerm
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
  * @param {number} [boost]
@@ -3191,19 +3191,19 @@ function TermRangeQuery(field, startTerm, endTerm, excludeStart, excludeEnd, boo
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermRangeQuery.prototype.field = null;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermRangeQuery.prototype.startTerm;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermRangeQuery.prototype.endTerm;

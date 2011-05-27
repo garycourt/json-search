@@ -1,8 +1,8 @@
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} field
- * @param {string} term
+ * @param {FieldName} field
+ * @param {Term} term
  * @param {number} [boost]
  */
 
@@ -13,13 +13,13 @@ function TermQuery(field, term, boost) {
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermQuery.prototype.field = null;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermQuery.prototype.term;

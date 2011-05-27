@@ -1,9 +1,9 @@
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} field
- * @param {string} startTerm
- * @param {string} endTerm
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
  * @param {number} [boost]
@@ -19,19 +19,19 @@ function TermRangeQuery(field, startTerm, endTerm, excludeStart, excludeEnd, boo
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermRangeQuery.prototype.field = null;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermRangeQuery.prototype.startTerm;
 
 /**
- * @type {string}
+ * @type {Term}
  */
 
 TermRangeQuery.prototype.endTerm;

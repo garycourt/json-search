@@ -5,7 +5,7 @@
 function TermVectorEntry() {};
 
 /**
- * @type {string|number|boolean|null}
+ * @type {Term}
  */
 
 TermVectorEntry.prototype.term;
@@ -29,7 +29,7 @@ TermVectorEntry.prototype.termPositions;
 TermVectorEntry.prototype.termOffsets;
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermVectorEntry.prototype.field;

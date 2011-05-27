@@ -7,7 +7,7 @@ function DefaultTermIndexer() {};
 
 /**
  * @param {Object} doc
- * @param {string} [field]
+ * @param {FieldName} [field]
  * @return {Array.<TermVectorEntry>}
  */
 
@@ -24,7 +24,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 	case 'number':
 		result[0] = /** @type {TermVectorEntry} */ ({
 				term : doc,
-				field : field,
+				field : field || null,
 				documentID : id
 		});
 		break;
@@ -78,7 +78,7 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
 };
 
 /**
- * @return {String}
+ * @return {string}
  */
 
 DefaultTermIndexer.prototype.toSource = function () {

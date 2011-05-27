@@ -53,7 +53,7 @@ MemoryIndex.prototype._index;
 MemoryIndex.prototype._termIndexer = new DefaultTermIndexer();
 
 /**
- * @return {string}
+ * @return {DocumentID}
  */
 
 MemoryIndex.prototype.generateID = function () {
@@ -135,8 +135,8 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 };
 
 /**
- * @param {string|null} field
- * @param {string} term
+ * @param {FieldName} field
+ * @param {Term} term
  * @return {ReadableStream}
  */
 
@@ -163,9 +163,9 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
 };
 
 /**
- * @param {string|null} field
- * @param {string} startTerm
- * @param {string} endTerm
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
  * @return {ReadableStream}

@@ -1,8 +1,8 @@
 /**
  * @constructor
  * @implements {Query}
- * @param {string|null} [field]
- * @param {Array.<string|undefined>} [terms]
+ * @param {FieldName} [field]
+ * @param {Array.<Term|undefined>} [terms]
  * @param {number} [slop]
  * @param {number} [boost]
  */
@@ -15,13 +15,13 @@ function PhraseQuery(field, terms, slop, boost) {
 };
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 PhraseQuery.prototype.field = null;
 
 /**
- * @type {Array.<string|undefined>}
+ * @type {Array.<Term|undefined>}
  */
 
 PhraseQuery.prototype.terms;

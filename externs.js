@@ -95,17 +95,17 @@ Index.prototype.getDocument = function (id, callback) {};
 Index.prototype.setTermIndexer = function (indexer, callback) {};
 
 /**
- * @param {string|null} field
- * @param {string} term
+ * @param {FieldName} field
+ * @param {Term} term
  * @return {ReadableStream}
  */
 
 Index.prototype.getTermVectors = function (field, term) {};
 
 /**
- * @param {string|null} field
- * @param {string} startTerm
- * @param {string} endTerm
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
  * @return {ReadableStream}
@@ -244,7 +244,7 @@ function TermIndexer() {};
 TermIndexer.prototype.index = function (doc, id) {};
 
 /**
- * @return {String}
+ * @return {string}
  */
 
 TermIndexer.prototype.toSource = function () {};
@@ -257,7 +257,7 @@ TermIndexer.prototype.toSource = function () {};
 function TermVector() {};
 
 /**
- * @type {string|number|boolean|null}
+ * @type {Term}
  */
 
 TermVector.prototype.term;
@@ -281,7 +281,7 @@ TermVector.prototype.termPositions;
 TermVector.prototype.termOffsets;
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermVector.prototype.field;
@@ -329,7 +329,7 @@ TermVector.prototype.totalDocuments;
 function TermVectorEntry() {};
 
 /**
- * @type {string|number|boolean|null}
+ * @type {Term}
  */
 
 TermVectorEntry.prototype.term;
@@ -353,7 +353,7 @@ TermVectorEntry.prototype.termPositions;
 TermVectorEntry.prototype.termOffsets;
 
 /**
- * @type {string|null}
+ * @type {FieldName}
  */
 
 TermVectorEntry.prototype.field;
@@ -424,3 +424,15 @@ var PossibleError;
  */
 
 var DocumentID;
+
+/**
+ * @typedef {(string|null)}
+ */
+
+var FieldName;
+
+/**
+ * @typedef {(string|number|boolean|null)}
+ */
+
+var Term;

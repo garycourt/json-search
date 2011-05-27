@@ -9,3 +9,15 @@ var PossibleError;
  */
 
 var DocumentID;
+
+/**
+ * @typedef {(string|null)}
+ */
+
+var FieldName;
+
+/**
+ * @typedef {(string|number|boolean|null)}
+ */
+
+var Term;

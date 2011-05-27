@@ -13,7 +13,7 @@ function TermIndexer() {};
 TermIndexer.prototype.index = function (doc, id) {};
 
 /**
- * @return {String}
+ * @return {string}
  */
 
 TermIndexer.prototype.toSource = function () {};
