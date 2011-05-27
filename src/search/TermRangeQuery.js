@@ -61,7 +61,7 @@ TermRangeQuery.prototype.boost = 1.0;
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermScorer(this, similarity);
+	var scorer = new TermScorer(this, similarity);  //FIXME: Scorer should collect and sort results before pipeing
 	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(scorer);
 	return scorer;
 };

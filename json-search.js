@@ -938,6 +938,7 @@ exports.DefaultTermIndexer = DefaultTermIndexer;
 function MemoryIndex() {
 	this._docs = {};
 	this._index = {};
+	this._indexKeys = [];
 };
 
 /**
@@ -950,6 +951,22 @@ MemoryIndex.documentIDComparator = function (a, b) {
 	if (a.documentID < b.documentID) {
 		return -1;
 	} else if (a.documentID > b.documentID) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
+/**
+ * @param {string} a
+ * @param {string} b
+ * @return {number}
+ */
+
+MemoryIndex.stringComparator = function (a, b) {
+	if (a < b) {
+		return -1;
+	} else if (a > b) {
 		return 1;
 	} 
 	//else
@@ -976,6 +993,13 @@ MemoryIndex.prototype._docCount = 0;
  */
 
 MemoryIndex.prototype._index;
+
+/**
+ * @protected
+ * @type {Array.<string>}
+ */
+
+MemoryIndex.prototype._indexKeys;
 
 /**
  * @protected
@@ -1009,6 +1033,7 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 		} else {
 			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
+		Array.orderedInsert(this._indexKeys, key, MemoryIndex.stringComparator);
 	}
 	
 	if (callback) {
@@ -1090,7 +1115,67 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
  */
 
 MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {
-	//TODO
+	var startKey = JSON.stringify([field, startTerm]),
+		endKey = JSON.stringify([field, endTerm]),
+		i = this.indexOfKey(startKey),
+		il = this._indexKeys.length,
+		result = [];
+	
+	if (excludeStart && this._indexKeys[i] === startKey) {
+		++i;
+	}
+	
+	if (excludeEnd) {
+		while (i < il && this._indexKeys[i] < endKey) {
+			result = result.concat(this._index[this._indexKeys[i]]);
+			++i;
+		}
+	} else {
+		while (i < il && this._indexKeys[i] <= endKey) {
+			result = result.concat(this._index[this._indexKeys[i]]);
+			++i;
+		}
+	}
+	
+	return (new ArrayStream(result)).start();
+};
+
+/**
+ * @param {string} key
+ * @return {number}
+ */
+
+MemoryIndex.prototype.indexOfKey = function (key) {
+	var arr = this._indexKeys, start, end, pivot;
+	
+	if (arr.length === 0) {
+		return 0;
+	}
+	
+	start = 0;
+	end = arr.length - 1;
+	pivot = Math.floor(end / 2);
+	
+	while (start < end) {
+		if (arr[pivot] === key) {
+			return pivot;
+		} else if (arr[pivot] < key) {
+			start = pivot + 1;
+		} else {
+			end = pivot - 1;
+		}
+		pivot = Math.round(start + ((end - start) / 2));
+	}
+	
+	if (start === end) {
+		if (arr[start] < key) {
+			return start + 1;
+		} else {
+			return start;
+		}
+	} 
+	//else
+	return end + 1;
 };
 
 
@@ -3221,7 +3306,7 @@ TermRangeQuery.prototype.boost = 1.0;
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermScorer(this, similarity);
+	var scorer = new TermScorer(this, similarity);  //FIXME: Scorer should collect and sort results before pipeing
 	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(scorer);
 	return scorer;
 };
