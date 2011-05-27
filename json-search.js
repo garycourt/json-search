@@ -1067,12 +1067,12 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 };
 
 /**
- * @param {string} term
  * @param {string|null} field
+ * @param {string} term
  * @return {ReadableStream}
  */
 
-MemoryIndex.prototype.getTermVectors = function (term, field) {
+MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
@@ -1333,10 +1333,10 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 				b.collector = null;
 				self._collectorCount--;
 				
-				if (!self._collectorCount || b.occur === Occur.MUST) {
+				if (self._collectorCount === 0 || b.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
-				} else {
+				} else if (self._collectorCount > 0) {
 					self.write();
 				}
 			}
@@ -1927,7 +1927,7 @@ PhraseQuery.prototype.rewrite = function () {
 	//TODO: Remove useless undefineds from start/end of array
 	
 	if (this.terms.length === 1 && typeof this.terms[0] !== "undefined") {
-		return new TermQuery(/** @type {string} */ (this.terms[0]), this.field, this.boost);
+		return new TermQuery(this.field, /** @type {string} */ (this.terms[0]), this.boost);
 	}
 	//else
 	return this;
@@ -2587,7 +2587,7 @@ QueryParser.impl = (function(){
         }
         var result0 = result1 !== null
           ? (function(field, term, boost) {
-            return new TermQuery(term, field ? field[0] : defaultField, boost);
+            return new TermQuery(field ? field[0] : defaultField, term, boost);
           })(result1[0], result1[1], result1[2])
           : null;
         
@@ -3037,28 +3037,28 @@ exports.Searcher = Searcher;
 /**
  * @constructor
  * @implements {Query}
+ * @param {string|null} field
  * @param {string} term
- * @param {string|null} [field]
  * @param {number} [boost]
  */
 
-function TermQuery(term, field, boost) {
-	this.term = term;
+function TermQuery(field, term, boost) {
 	this.field = field || null;
+	this.term = term;
 	this.boost = boost || 1.0;
 };
-
-/**
- * @type {string}
- */
-
-TermQuery.prototype.term;
 
 /**
  * @type {string|null}
  */
 
 TermQuery.prototype.field = null;
+
+/**
+ * @type {string}
+ */
+
+TermQuery.prototype.term;
 
 /**
  * @type {number}
@@ -3074,7 +3074,7 @@ TermQuery.prototype.boost = 1.0;
 
 TermQuery.prototype.score = function (similarity, index) {
 	var scorer = new TermScorer(this, similarity);
-	index.getTermVectors(this.term, this.field).pipe(scorer);
+	index.getTermVectors(this.field, this.term).pipe(scorer);
 	return scorer;
 };
 

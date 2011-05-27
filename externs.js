@@ -95,12 +95,12 @@ Index.prototype.getDocument = function (id, callback) {};
 Index.prototype.setTermIndexer = function (indexer, callback) {};
 
 /**
- * @param {string} term
  * @param {string|null} field
+ * @param {string} term
  * @return {ReadableStream}
  */
 
-Index.prototype.getTermVectors = function (term, field) {};
+Index.prototype.getTermVectors = function (field, term) {};
 
 /**
  * @param {string|null} field

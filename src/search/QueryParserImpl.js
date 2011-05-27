@@ -547,7 +547,7 @@ QueryParser.impl = (function(){
         }
         var result0 = result1 !== null
           ? (function(field, term, boost) {
-            return new TermQuery(term, field ? field[0] : defaultField, boost);
+            return new TermQuery(field ? field[0] : defaultField, term, boost);
           })(result1[0], result1[1], result1[2])
           : null;
         

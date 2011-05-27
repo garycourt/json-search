@@ -73,7 +73,7 @@ PhraseQuery.prototype.rewrite = function () {
 	//TODO: Remove useless undefineds from start/end of array
 	
 	if (this.terms.length === 1 && typeof this.terms[0] !== "undefined") {
-		return new TermQuery(/** @type {string} */ (this.terms[0]), this.field, this.boost);
+		return new TermQuery(this.field, /** @type {string} */ (this.terms[0]), this.boost);
 	}
 	//else
 	return this;

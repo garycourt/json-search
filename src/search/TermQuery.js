@@ -1,28 +1,28 @@
 /**
  * @constructor
  * @implements {Query}
+ * @param {string|null} field
  * @param {string} term
- * @param {string|null} [field]
  * @param {number} [boost]
  */
 
-function TermQuery(term, field, boost) {
-	this.term = term;
+function TermQuery(field, term, boost) {
 	this.field = field || null;
+	this.term = term;
 	this.boost = boost || 1.0;
 };
-
-/**
- * @type {string}
- */
-
-TermQuery.prototype.term;
 
 /**
  * @type {string|null}
  */
 
 TermQuery.prototype.field = null;
+
+/**
+ * @type {string}
+ */
+
+TermQuery.prototype.term;
 
 /**
  * @type {number}
@@ -38,7 +38,7 @@ TermQuery.prototype.boost = 1.0;
 
 TermQuery.prototype.score = function (similarity, index) {
 	var scorer = new TermScorer(this, similarity);
-	index.getTermVectors(this.term, this.field).pipe(scorer);
+	index.getTermVectors(this.field, this.term).pipe(scorer);
 	return scorer;
 };
 

@@ -135,12 +135,12 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 };
 
 /**
- * @param {string} term
  * @param {string|null} field
+ * @param {string} term
  * @return {ReadableStream}
  */
 
-MemoryIndex.prototype.getTermVectors = function (term, field) {
+MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,

@@ -182,10 +182,10 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 				b.collector = null;
 				self._collectorCount--;
 				
-				if (!self._collectorCount || b.occur === Occur.MUST) {
+				if (self._collectorCount === 0 || b.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
-				} else {
+				} else if (self._collectorCount > 0) {
 					self.write();
 				}
 			}

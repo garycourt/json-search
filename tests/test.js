@@ -35,8 +35,8 @@ index.addDocument({
 
 var searcher = new Searcher(index);
 
-function testTermSearch(term, field) {
-	searcher.search(new TermQuery(term, field), 10, function (err, docs) {
+function testTermSearch(field, term) {
+	searcher.search(new TermQuery(field, term), 10, function (err, docs) {
 		if (!err) {
 			console.log(docs);
 		} else {
@@ -57,8 +57,8 @@ function testBooleanSearch(clauses) {
 	});
 }
 
-function termQueryBooleanClause(term, field, occur) {
-	return new BooleanClause(new TermQuery(term, field), occur);
+function termQueryBooleanClause(field, term, occur) {
+	return new BooleanClause(new TermQuery(field, term), occur);
 }
 
 function testQueryStringSearch(qs, defaultField) {
@@ -75,9 +75,9 @@ function testQueryStringSearch(qs, defaultField) {
  * Example Searches
  */
 
-//testTermSearch("test", "body");
+//testTermSearch("body", "test");
 
 testBooleanSearch([
-	termQueryBooleanClause("dynamic", "body", Occur.MUST), 
-	termQueryBooleanClause("compiled", "body", Occur.MUST_NOT)
+	termQueryBooleanClause("body", "dynamic", Occur.MUST), 
+	termQueryBooleanClause("body", "compiled", Occur.MUST_NOT)
 ]);

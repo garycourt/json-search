@@ -27,7 +27,7 @@ Boost "boost" = boost:("^" Number)? {
 }
 
 TermQuery = field:(Term ":")? term:Term boost:Boost {
-  return new TermQuery(term, field ? field[0] : defaultField, boost);
+  return new TermQuery(field ? field[0] : defaultField, term, boost);
 }
 
 BooleanClause = occur:("+" / "-")? query:(SubQuery / TermQuery) {
