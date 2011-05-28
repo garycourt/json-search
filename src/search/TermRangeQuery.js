@@ -57,7 +57,7 @@ TermRangeQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {

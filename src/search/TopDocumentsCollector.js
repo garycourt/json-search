@@ -43,16 +43,32 @@ TopDocumentsCollector.prototype.lowestScore = 0;
 
 /**
  * @param {DocumentTerms} doc
- * @override
  */
 
-TopDocumentsCollector.prototype.write = function (doc) {
+TopDocumentsCollector.prototype.onWrite = function (doc) {
 	if (this.collection.length < this.max || doc.score > this.lowestScore) {
 		if (this.collection.length >= this.max) {
 			this.collection.pop();  //remove lowest scored document
 		}
 		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
 		this.lowestScore = this.collection[this.collection.length - 1].score;
+	}
+};
+
+/**
+ * @param {Array.<DocumentTerms>} docs
+ */
+
+TopDocumentsCollector.prototype.onBulkWrite = function (docs) {
+	var x, xl;
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		if (this.collection.length < this.max || docs[x].score > this.lowestScore) {
+			if (this.collection.length >= this.max) {
+				this.collection.pop();  //remove lowest scored document
+			}
+			Array.orderedInsert(this.collection, docs[x], TopDocumentsCollector.compareScores);
+			this.lowestScore = this.collection[this.collection.length - 1].score;
+		}
 	}
 };
 

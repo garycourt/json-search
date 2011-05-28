@@ -41,7 +41,7 @@ PhraseQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 PhraseQuery.prototype.score = function (similarity, index) {

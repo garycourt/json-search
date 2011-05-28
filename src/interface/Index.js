@@ -37,7 +37,7 @@ Index.prototype.setTermIndexer = function (indexer, callback) {};
 /**
  * @param {FieldName} field
  * @param {Term} term
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Index.prototype.getTermVectors = function (field, term) {};
@@ -48,7 +48,7 @@ Index.prototype.getTermVectors = function (field, term) {};
  * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {};

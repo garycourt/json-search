@@ -27,7 +27,7 @@ NormalizedQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 NormalizedQuery.prototype.score = function (similarity, index) {
@@ -62,8 +62,6 @@ NormalizedQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {NormalizedQuery} query
  * @param {Similarity} similarity
  */
@@ -98,30 +96,28 @@ NormalizedScorer.prototype._similarity;
 
 NormalizedScorer.prototype._maxOverlap;
 
-NormalizedScorer.prototype.readable = true;
-
-NormalizedScorer.prototype.writable = true;
-
 /**
  * @param {DocumentTerms} doc
  */
 
-NormalizedScorer.prototype.write = function (doc) {
+NormalizedScorer.prototype.onWrite = function (doc) {
 	doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
 	//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
-	this.emit('data', doc);
+	this.emit(doc);
 };
 
 /**
- * @param {DocumentTerms} [doc]
+ * @param {Array.<DocumentTerms>} docs
  */
 
-NormalizedScorer.prototype.end = function (doc) {
-	if (typeof doc !== "undefined") {
-		this.write(doc);
+NormalizedScorer.prototype.onBulkWrite = function (docs) {
+	var x, xl, doc;
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		doc = docs[x];
+		doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
+		//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
 	}
-	this.emit('end');
-	this.destroy();
+	this.emitBulk(docs);
 };
 
 

@@ -33,7 +33,7 @@ TermQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 TermQuery.prototype.score = function (similarity, index) {
@@ -66,8 +66,6 @@ TermQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {Query} query
  * @param {Similarity} similarity
  */
@@ -94,15 +92,11 @@ TermScorer.prototype._boost;
 
 TermScorer.prototype._similarity;
 
-TermScorer.prototype.readable = true;
-
-TermScorer.prototype.writable = true;
-
 /**
  * @param {TermVector} termVec
  */
 
-TermScorer.prototype.write = function (termVec) {
+TermScorer.prototype.onWrite = function (termVec) {
 	var similarity = this._similarity,
 		doc = new DocumentTerms(termVec.documentID, [termVec]),
 		idf = similarity.idf(termVec);
@@ -116,19 +110,36 @@ TermScorer.prototype.write = function (termVec) {
 		this._boost * 
 		similarity.norm(termVec);
 	
-	this.emit('data', doc);
+	this.emit(doc);
 };
 
 /**
- * @param {TermVector} [termVec]
+ * @param {Array.<TermVector>} termVecs
  */
 
-TermScorer.prototype.end = function (termVec) {
-	if (typeof termVec !== "undefined") {
-		this.write(termVec);
+TermScorer.prototype.onBulkWrite = function (termVecs) {
+	var similarity = this._similarity,
+		termVec, doc, idf,
+		docs = new Array(termVecs.length);
+	
+	for (x = 0, xl = termVecs.length; x < xl; ++x) {
+		termVec = termVecs[x];
+		doc = new DocumentTerms(termVec.documentID, [termVec]);
+		idf = similarity.idf(termVec);
+		
+		//compute sumOfSquaredWeights
+		doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
+		
+		//compute score
+		doc.score = similarity.tf(termVec) * 
+			idf * idf *
+			this._boost * 
+			similarity.norm(termVec);
+		
+		docs[x] = doc;
 	}
-	this.emit('end');
-	this.destroy();
+	
+	this.emitBulk(docs);
 };
 
 

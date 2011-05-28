@@ -1,5 +1,5 @@
 /**
- * @typedef {(Error|string|null|undefined)}
+ * @typedef {(Error|string|number|boolean|null|undefined)}
  */
 
 var PossibleError;

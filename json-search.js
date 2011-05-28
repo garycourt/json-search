@@ -167,397 +167,338 @@ if (typeof Array.orderedInsert !== "function") {
 //}
 
 /**
- * Create our own EventEmitter
  * @constructor
- * @implements {Emitter}
  */
 
-var EventEmitter = function () {};
-
-try {
-	if (!require("events").EventEmitter) {
-		throw new Error();
-	}
-	
-	/**
-	 * use Node's implementation, if available
-	 * @constructor
-	 * @implements {Emitter}
-	 */
-	
-	EventEmitter = require("events").EventEmitter;
-} catch(e) {
-	// Copyright Joyent, Inc. and other Node contributors.
-	//
-	// Permission is hereby granted, free of charge, to any person obtaining a
-	// copy of this software and associated documentation files (the
-	// "Software"), to deal in the Software without restriction, including
-	// without limitation the rights to use, copy, modify, merge, publish,
-	// distribute, sublicense, and/or sell copies of the Software, and to permit
-	// persons to whom the Software is furnished to do so, subject to the
-	// following conditions:
-	//
-	// The above copyright notice and this permission notice shall be included
-	// in all copies or substantial portions of the Software.
-	//
-	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-	// USE OR OTHER DEALINGS IN THE SOFTWARE.
-	
-	/**
-	 * @private
-	 * @type {Object}
-	 */
-	
-	EventEmitter.prototype._events;
-	
-	/**
-	 * @param {string} type
-	 * @param {...*} [args]
-	 * @return {boolean}
-	 */
-	
-	EventEmitter.prototype.emit = function (type, args) {
-		// If there is no 'error' event listener then throw.
-		if (type === 'error') {
-			if (!this._events || !this._events.error || (Array.isArray(this._events.error) && !this._events.error.length)) {
-				if (arguments[1] instanceof Error) {
-					throw arguments[1]; // Unhandled 'error' event
-				} else {
-					throw new Error("Uncaught, unspecified 'error' event.");
-				}
-			}
-		}
-	
-		if (!this._events) return false;
-		var handler = this._events[type];
-		if (!handler) return false;
-	
-		if (typeof handler == 'function') {
-			switch (arguments.length) {
-				// fast cases
-			case 1:
-				handler.call(this);
-				break;
-			case 2:
-				handler.call(this, arguments[1]);
-				break;
-			case 3:
-				handler.call(this, arguments[1], arguments[2]);
-				break;
-				// slower
-			default:
-				args = Array.prototype.slice.call(arguments, 1);
-				handler.apply(this, args);
-			}
-			return true;
-	
-		} else if (Array.isArray(handler)) {
-			args = Array.prototype.slice.call(arguments, 1);
-	
-			var listeners = handler.slice();
-			for (var i = 0, l = listeners.length; i < l; i++) {
-				listeners[i].apply(this, args);
-			}
-			return true;
-	
-		} else {
-			return false;
-		}
-	};
-	
-	/**
-	 * @param {string} type
-	 * @param {function(...)} listener
-	 * @return {EventEmitter}
-	 */
-	
-	EventEmitter.prototype.addListener = function (type, listener) {
-		if ('function' !== typeof listener) {
-			throw new Error('addListener only takes instances of Function');
-		}
-	
-		if (!this._events) this._events = {};
-	
-		// To avoid recursion in the case that type == "newListeners"! Before
-		// adding it to the listeners, first emit "newListeners".
-		//this.emit('newListener', type, listener);
-	
-		if (!this._events[type]) {
-			// Optimize the case of one listener. Don't need the extra array object.
-			this._events[type] = listener;
-		} else if (Array.isArray(this._events[type])) {
-			// If we've already got an array, just append.
-			this._events[type].push(listener);
-		} else {
-			// Adding the second element, need to change to array.
-			this._events[type] = [this._events[type], listener];
-		}
-	
-		return this;
-	};
-	
-	EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-	
-	/**
-	 * @param {string} type
-	 * @param {function(...)} listener
-	 * @return {EventEmitter}
-	 */
-	
-	EventEmitter.prototype.once = function (type, listener) {
-		if ('function' !== typeof listener) {
-			throw new Error('.once only takes instances of Function');
-		}
-	
-		var self = this;
-	
-		function g() {
-			self.removeListener(type, g);
-			listener.apply(this, arguments);
-		};
-	
-		g.listener = listener;
-		self.on(type, g);
-	
-		return this;
-	};
-	
-	/**
-	 * @param {string} type
-	 * @param {function(...)} listener
-	 * @return {EventEmitter}
-	 */
-	
-	EventEmitter.prototype.removeListener = function (type, listener) {
-		if ('function' !== typeof listener) {
-			throw new Error('removeListener only takes instances of Function');
-		}
-	
-		// does not use listeners(), so no side effect of creating _events[type]
-		if (!this._events || !this._events[type]) return this;
-	
-		var list = this._events[type];
-	
-		if (Array.isArray(list)) {
-			var position = -1;
-			for (var i = 0, length = list.length; i < length; i++) {
-				if (list[i] === listener || (list[i].listener && list[i].listener === listener)) {
-					position = i;
-					break;
-				}
-			}
-	
-			if (position < 0) return this;
-			
-			if (list.length === 1) {
-				delete this._events[type];
-			} else {
-				list.splice(position, 1);
-			}
-		} else if (list === listener || (list.listener && list.listener === listener)) {
-			delete this._events[type];
-		}
-	
-		return this;
-	};
-	
-	/**
-	 * @param {string} [type]
-	 * @return {EventEmitter}
-	 */
-	
-	EventEmitter.prototype.removeAllListeners = function (type) {
-		if (arguments.length === 0) {
-			this._events = {};
-			return this;
-		}
-	
-		// does not use listeners(), so no side effect of creating _events[type]
-		if (type && this._events && this._events[type]) this._events[type] = null;
-		return this;
-	};
-	
-	/**
-	 * @param {string} type
-	 * @return {Array.<function(...)>}
-	 */
-	
-	EventEmitter.prototype.listeners = function (type) {
-		if (!this._events) this._events = {};
-		if (!this._events[type]) this._events[type] = [];
-		if (!Array.isArray(this._events[type])) {
-			this._events[type] = [this._events[type]];
-		}
-		return this._events[type];
-	};
-}
-
-
-exports.EventEmitter = EventEmitter;
-
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
+function Stream() {}
 
 /**
- * @constructor
- * @extends {EventEmitter}
+ * @private
+ * @type {Stream}
  */
 
-function Stream() {
-	EventEmitter.call(this);
-}
-
-Stream.prototype = Object.create(EventEmitter.prototype);
+Stream.prototype._streamInput = null;
 
 /**
+ * @private
+ * @type {Stream}
+ */
+
+Stream.prototype._streamOutput = null;
+
+/**
+ * @private
+ * @type {Array.<Array.<*>>}
+ */
+
+Stream.prototype._streamBuffer = null;
+
+/**
+ * @private
  * @type {boolean}
  */
 
-Stream.prototype.readable = false;
+Stream.prototype._streamPaused = false;
 
 /**
+ * @private
  * @type {boolean}
  */
 
-Stream.prototype.writable = false;
+Stream.prototype._streamEnded = false;
 
 /**
- * @param {WritableStream} dest
- * @param {Object} [options]
+ * @private
+ * @type {Error|string|null}
  */
 
-Stream.prototype.pipe = function (dest, options) {
-	var source = this;
+Stream.prototype._streamError = null;
 
-	/**
-	 * @param {?} chunk
-	 */
+/**
+ * @private
+ * @type {boolean}
+ */
 
-	function ondata(chunk) {
-		if (dest.writable) {
-			if (false === dest.write(chunk)) source.pause();
-		}
-	}
+Stream.prototype._streamDraining = false;
 
-	source.on('data', ondata);
-	
-	function onerror(err) {
-		dest.emit('error', err);
-		source.destroy();
-	};
-	
-	if (!options || options.error !== false) {
-		source.on('error', onerror);
-	}
+/**
+ * @private
+ */
 
-	function ondrain() {
-		if (source.readable) source.resume();
-	}
-
-	dest.on('drain', ondrain);
-
-	/*
-	 * If the 'end' option is not supplied, dest.end() will be called when
-	 * source gets the 'end' event.
-	 */
-
-	function onend() {
-		dest.end();
-	}
-
-	if (!options || options.end !== false) {
-		source.on('end', onend);
-		source.on('close', onend);
-	}
-
-	function onpause() {
-		source.pause();
-	}
-
-	dest.on('pause', onpause);
-
-	function onresume() {
-		if (source.readable) source.resume();
-	};
-
-	dest.on('resume', onresume);
-
-	function cleanup() {
-		source.removeListener('data', ondata);
-		source.removeListener('error', onerror);
-		dest.removeListener('drain', ondrain);
-		source.removeListener('end', onend);
-		source.removeListener('close', onend);
-
-		dest.removeListener('pause', onpause);
-		dest.removeListener('resume', onresume);
-
-		source.removeListener('end', cleanup);
-		source.removeListener('close', cleanup);
-		source.removeListener('error', cleanup);
-
-		dest.removeListener('end', cleanup);
-		dest.removeListener('close', cleanup);
+Stream.prototype._streamDrain = function () {
+	var pointer, subpointer, sublength;
+	if (this._streamBuffer && !this._streamPaused && !this._streamDraining) {
+		this._streamDraining = true;
 		
-		//dest.emit('pipeDisconnected', source);
-	};
+		try {
+			for (pointer = 0; !this._streamPaused && pointer < this._streamBuffer.length; ++pointer) {
+				if (this._streamBuffer[pointer].length > 1) {
+					if (this.onBulkWrite !== Stream.prototype.onBulkWrite) {
+						this.onBulkWrite(this._streamBuffer[pointer]);
+					} else {
+						for (subpointer = 0, sublength = this._streamBuffer[pointer].length; !this._streamPaused && subpointer < sublength; ++subpointer) {
+							this.onWrite(this._streamBuffer[pointer][subpointer]);
+						}
+						if (subpointer < sublength) {
+							this._streamBuffer[pointer] = this._streamBuffer[pointer].slice(subpointer);
+							break;  //stop executing, don't increment pointer
+						}
+					}
+				} else if (this._streamBuffer[pointer].length === 1) {
+					this.onWrite(this._streamBuffer[pointer][0]);
+				}
+			}
+		} catch(e) {
+			this.error(e);
+			pointer = this._streamBuffer.length;
+		}
+		
+		if (!this._streamPaused && pointer >= this._streamBuffer.length) {
+			this._streamBuffer = null;
+			if (this._streamEnded) {
+				try {
+					if (this._streamError) {
+						this.onError(this._streamError);
+					} else {
+						this.onEnd();
+					}
+				} catch(e) {}  //ignore any errors
+			}
+		} else {
+			this._streamBuffer = this._streamBuffer.slice(pointer);
+		}
+		
+		this._streamDraining = false;
+	}
+};
 
-	source.on('end', cleanup);
-	source.on('close', cleanup);
-	source.on('error', cleanup);
+/**
+ * @param {Stream} output
+ */
 
-	dest.on('end', cleanup);
-	dest.on('close', cleanup);
+Stream.prototype.pipe = function (output) {
+	if (this._streamOutput) {
+		throw new Error("Stream already has an output");
+	}
+	if (output._streamInput) {
+		throw new Error("Output stream already has an input");
+	}
+	
+	this._streamOutput = output;
+	output._streamInput = this;
+	output._streamEnded = false;
+	output._streamError = null;
+	
+	output.onStart(this);
+};
 
-	//dest.emit('pipeConnected', source);
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.write = function (entry) {
+	if (!this._streamPaused) {
+		this.onWrite(entry);
+	} else {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = [ entry ];
+	}
+};
+
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.emit = function (entry) {
+	if (this._streamOutput) {
+		this._streamOutput.write(entry);
+	}
+};
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.bulkWrite = function (entries) {
+	if (!this._streamPaused) {
+		this.onBulkWrite(entries);
+	} else {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = entries;
+	}
+};
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.emitBulk = function (entries) {
+	if (this._streamOutput) {
+		this._streamOutput.bulkWrite(entries);
+	}
+};
+
+/**
+ * @return {boolean}
+ */
+
+Stream.prototype.isPaused = function () {
+	return this._streamPaused;
 };
 
 /**
  */
 
 Stream.prototype.pause = function () {
-	this.emit('pause');
+	if (!this._streamPaused) {
+		this._streamPaused = true;
+		if (this.onPause) {
+			this.onPause();
+		}
+		if (this._streamInput) {
+			this._streamInput.pause();
+		}
+	}
 };
 
 /**
  */
 
 Stream.prototype.resume = function () {
-	this.emit('resume');
+	var self = this;
+	if (this._streamPaused) {
+		this._streamPaused = false;
+		if (this.onResume) {
+			this.onResume();
+		}
+		if (this._streamBuffer) {
+			setTimeout(function () {
+				self._streamDrain();
+			}, 0);
+		}
+		if (this._streamInput) {
+			this._streamInput.resume();
+		}
+	}
 };
 
 /**
  */
 
-Stream.prototype.destroy = function () {
-	this.readable = false;
-	this.writable = false;
-	this.emit('close');
-	this.removeAllListeners();
+Stream.prototype.end = function () {
+	if (!this._streamEnded) {
+		this._streamEnded = true;
+		
+		if (!this._streamPaused && !this._streamBuffer) {
+			this.onEnd();
+		} else {
+			if (!this._streamBuffer) {
+				this._streamBuffer = [];
+			}
+		}
+	}
 };
+
+/**
+ */
+
+Stream.prototype.emitEnd = function () {
+	this._streamEnded = true;
+	if (this._streamOutput) {
+		this._streamOutput.end();
+		this._streamOutput._streamInput = null;
+		this._streamOutput = null;
+	}
+};
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.error = function (error) {
+	if (!this._streamEnded) {
+		this._streamEnded = true;
+		this._streamError = error;
+		
+		if (!this._streamPaused && !this._streamBuffer) {
+			this.onError(error);
+		} else {
+			if (!this._streamBuffer) {
+				this._streamBuffer = [];
+			}
+		}
+	}
+};
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.emitError = function (error) {
+	this._streamEnded = true;
+	this._streamError = error;
+	if (this._streamOutput) {
+		this._streamOutput.error(error);
+		this._streamOutput._streamInput = null;
+		this._streamOutput = null;
+	}
+};
+
+/**
+ * @param {Stream} input
+ */
+
+Stream.prototype.onStart = function (input) {};
+
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.onWrite = Stream.prototype.emit;
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.onBulkWrite = function (entries) {
+	if (this.onWrite !== Stream.prototype.onWrite) {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = entries;
+		
+		this._streamDrain();
+	} else {
+		this.emitBulk(entries);
+	}
+};
+
+/**
+ * @type {function()|undefined}
+ */
+
+Stream.prototype.onPause;
+
+/**
+ * @type {function()|undefined}
+ */
+
+Stream.prototype.onResume;
+
+/**
+ */
+
+Stream.prototype.onEnd = Stream.prototype.emitEnd;
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.onError = Stream.prototype.emitError;
 
 
 exports.Stream = Stream;
@@ -565,134 +506,7 @@ exports.Stream = Stream;
 /**
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @param {Array} entries
- * @param {function(?)} [mapper]
- */
-
-function ArrayStream(entries, mapper) {
-	Stream.call(this);
-	this._entries = entries;
-	this._index = 0;
-	this._mapper = mapper;
-};
-
-ArrayStream.prototype = Object.create(Stream.prototype);
-
-/**
- * @protected
- * @type {Array}
- */
-
-ArrayStream.prototype._entries;
-
-/**
- * @protected
- * @type {number}
- */
-
-ArrayStream.prototype._index;
-
-/**
- * @protected
- * @type {function(?)|undefined}
- */
-
-ArrayStream.prototype._mapper;
-
-/**
- * @protected
- * @type {boolean}
- */
-
-ArrayStream.prototype._started = false;
-
-/**
- * @protected
- * @type {boolean}
- */
-
-ArrayStream.prototype._paused = false;
-
-/**
- * @protected
- * @type {boolean}
- */
-
-ArrayStream.prototype.readable = true;
-
-/**
- * @protected
- */
-
-ArrayStream.prototype._run = function () {
-	var data;
-	this._started = true;
-	
-	while (!this._paused && this._index < this._entries.length) {
-		data = this._entries[this._index++];
-		
-		if (this._mapper) {
-			data = this._mapper(data);
-		}
-		
-		this.emit('data', data);
-	}
-	
-	if (!this._paused && this._index >= this._entries.length) {
-		this.emit('end');
-		this.destroy();
-	}
-};
-
-/**
- * @return {ArrayStream}
- */
-
-ArrayStream.prototype.start = function () {
-	var self = this;
-	setTimeout(function () {
-		self._run();
-	}, 0);
-	return this;
-};
-
-/**
- */
-
-ArrayStream.prototype.pause = function () {
-	this._paused = true;
-	Stream.prototype.pause.call(this);
-};
-
-/**
- */
-
-ArrayStream.prototype.resume = function () {
-	var self = this;
-	if (this._started && this._paused) {
-		this._paused = false;
-		this.start();
-		Stream.prototype.resume.call(this);
-	}
-};
-
-/**
- */
-
-ArrayStream.prototype.destroy = function () {
-	this._index = Number.POSITIVE_INFINITY;
-	Stream.prototype.destroy.call(this);
-};
-
-
-exports.ArrayStream = ArrayStream;
-
-/**
- * @constructor
- * @extends {Stream}
- * @implements {WritableStream}
- * @param {function(PossibleError, Array=)} [callback]
+ * @param {function(PossibleError, Array.<*>=)} [callback]
  */
 
 function Collector(callback) {
@@ -700,19 +514,12 @@ function Collector(callback) {
 	Stream.call(this);
 	this.collection = [];
 	this.callback = callback || null;
-	
-	this.on('error', function (err) {
-		if (self.callback) {
-			self.callback(err);
-			self.callback = null;
-		}
-	});
 };
 
 Collector.prototype = Object.create(Stream.prototype);
 
 /**
- * @type {Array}
+ * @type {Array.<*>}
  */
 
 Collector.prototype.collection;
@@ -724,38 +531,38 @@ Collector.prototype.collection;
 Collector.prototype.callback = null;
 
 /**
- * @type {boolean}
+ * @param {*} entry
  */
 
-Collector.prototype.writable = true;
-
-/**
- * @param {?} data
- * @return {boolean}
- */
-
-Collector.prototype.write = function (data) {
-	this.collection.push(data);
-	return true;
+Collector.prototype.onWrite = function (entry) {
+	this.collection.push(entry);
 };
 
 /**
- * @param {?} [data]
+ * @param {Array.<*>} entries
  */
 
-Collector.prototype.end = function (data) {
-	if (typeof data !== "undefined") {
-		this.write(data);
-	}
-	this.destroy();
+Collector.prototype.onBulkWrite = function (entries) {
+	this.collection = this.collection.concat(entries);
 };
 
 /**
  */
 
-Collector.prototype.destroy = function () {
+Collector.prototype.onEnd = function () {
 	if (this.callback) {
 		this.callback(null, this.collection);
+		this.callback = null;
+	}
+};
+
+/**
+ * @param {Error} err
+ */
+
+Collector.prototype.onError = function (err) {
+	if (this.callback) {
+		this.callback(err);
 		this.callback = null;
 	}
 };
@@ -766,22 +573,21 @@ exports.Collector = Collector;
 /**
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
+ * @param {function(PossibleError, *=)} listener
  */
 
-function SingleCollector() {
+function SingleCollector(listener) {
 	Stream.call(this);
+	this.listener = listener;
 };
 
 SingleCollector.prototype = Object.create(Stream.prototype);
 
 /**
- * @private
- * @type {boolean}
+ * @type {function(PossibleError, *=)|null}
  */
 
-SingleCollector.prototype._writing = false;
+SingleCollector.prototype.listener;
 
 /**
  * @type {*}
@@ -790,51 +596,52 @@ SingleCollector.prototype._writing = false;
 SingleCollector.prototype.data;
 
 /**
- * @type {boolean}
- */
-
-SingleCollector.prototype.readable = true;
-
-/**
- * @type {boolean}
- */
-
-SingleCollector.prototype.writable = true;
-
-/**
  * @param {*} data
- * @return {boolean}
  */
 
-SingleCollector.prototype.write = function (data) {
+SingleCollector.prototype.onWrite = function (data) {
 	if (typeof this.data !== "undefined") {
 		throw new Error("Stream is full");
 	}
 	
 	this.data = data;
-	this._writing = true;
-	this.emit('data', data);
-	this._writing = false;
-	return (typeof this.data === "undefined");
-};
-
-SingleCollector.prototype.drain = function () {
-	this.data = undefined;
-	if (!this._writing) {
-		this.emit('drain');
+	if (this.listener) {
+		this.listener(null, data);
+	}
+	if (typeof this.data !== "undefined") {
+		this.pause();
 	}
 };
 
 /**
- * @param {*} [data]
  */
 
-SingleCollector.prototype.end = function (data) {
-	if (typeof data !== "undefined") {
-		this.write(data);
+SingleCollector.prototype.drain = function () {
+	this.data = undefined;
+	this.resume();
+};
+
+/**
+ */
+
+SingleCollector.prototype.onEnd = function () {
+	if (this.listener) {
+		this.listener(true);
+		this.listener = null;
 	}
-	this.emit('end');
-	this.destroy();
+	this.emitEnd();
+};
+
+/**
+ * @param {Error} err
+ */
+
+SingleCollector.prototype.onError = function (err) {
+	if (this.listener) {
+		this.listener(err);
+		this.listener = null;
+	}
+	this.emitError(err);
 };
 
 
@@ -1094,15 +901,21 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 /**
  * @param {FieldName} field
  * @param {Term} term
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
-		stream = new ArrayStream(entries);
-	return stream.start();
+		stream = new Stream();
+		
+	stream.pause();             //allow caller to attach to stream
+	stream.bulkWrite(entries);  //buffered
+	stream.end();               //buffered
+	stream.resume();            //asynchronous
+	
+	return stream;
 };
 
 /**
@@ -1111,7 +924,7 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
  * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {
@@ -1119,7 +932,8 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 		endKey = JSON.stringify([field, endTerm]),
 		i = this.indexOfKey(startKey),
 		il = this._indexKeys.length,
-		result = [];
+		result = [],
+		stream = new Stream();
 	
 	if (excludeStart && this._indexKeys[i] === startKey) {
 		++i;
@@ -1137,7 +951,12 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 		}
 	}
 	
-	return (new ArrayStream(result)).start();
+	setTimeout(function () {
+		stream.bulkWrite(entries);
+		stream.end();
+	}, 0);
+	
+	return stream;
 };
 
 /**
@@ -1254,7 +1073,7 @@ BooleanQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 BooleanQuery.prototype.score = function (similarity, index) {
@@ -1307,8 +1126,6 @@ BooleanQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {BooleanQuery} query
  * @param {Similarity} similarity
  * @param {Index} index
@@ -1362,71 +1179,45 @@ BooleanScorer.prototype._inputs;
 BooleanScorer.prototype._collectorCount = 0;
 
 /**
- * @protected
- * @type {boolean}
- */
-
-BooleanScorer.prototype._paused = false;
-
-/**
- * @type {boolean}
- */
-
-BooleanScorer.prototype.readable = true;
-
-/**
- * @type {boolean}
- */
-
-BooleanScorer.prototype.writable = true;
-
-/**
  * @param {Array.<BooleanClause>} clauses
  */
 
 BooleanScorer.prototype.addInputs = function (clauses) {
-	var self = this, x, xl, clause, collector, bcs, remover;
-	for (x = 0, xl = clauses.length; x < xl; ++x) {
-		clause = clauses[x];
-		collector = new SingleCollector();
-		bcs = new BooleanClauseStream(clause.query, clause.occur, collector);
-		
-		collector.pipe(this, {end : false});
-		clause.query.score(this._similarity, this._index).pipe(collector);
-		
-		this._inputs.push(bcs);
-		this._collectorCount++;
-		
-		remover = (function (b) {
-			return function () {
-				b.collector.removeListener('end', arguments.callee);
-				b.collector.removeListener('close', arguments.callee);
-				b.collector = null;
+	var self = this;
+	clauses.forEach(function (clause) {
+		var collector = new SingleCollector(function onCollection(done, data) {
+			if (!done) {
+				self.match();
+			} else if (done === true) {
+				bcs.collector = null;
 				self._collectorCount--;
 				
-				if (self._collectorCount === 0 || b.occur === Occur.MUST) {
+				if (self._collectorCount === 0 || bcs.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
 				} else if (self._collectorCount > 0) {
-					self.write();
+					self.match();
 				}
+			} else {  //done instanceof Error
+				self.error(done);
 			}
-		})(bcs);
+		}), 
+		bcs = new BooleanClauseStream(clause.query, clause.occur, collector);
 		
-		collector.on('end', remover);
-		collector.on('close', remover);
-	}
+		clause.query.score(self._similarity, self._index).pipe(collector);
+		self._inputs.push(bcs);
+		self._collectorCount++;
+	});
 };
 
 /**
- * @return {boolean}
  */
 
-BooleanScorer.prototype.write = function () {
+BooleanScorer.prototype.match = function () {
 	var x, xl, docs = [], lowestIndex = 0, lowestID, match = false, optionalMatches = 0, doc;
 	
-	if (this._paused) {
-		return true;  //scorer is paused, proceed no further
+	if (this.isPaused()) {
+		return;  //scorer is paused, proceed no further
 	}
 	
 	//collect all documents, find lowest document ID
@@ -1435,7 +1226,7 @@ BooleanScorer.prototype.write = function () {
 			docs[x] = this._inputs[x].collector.data;
 			
 			if (typeof docs[x] === "undefined") {
-				return true;  //not all collectors are full
+				return;  //not all collectors are full
 			}
 		} else {
 			docs[x] = undefined;
@@ -1473,7 +1264,7 @@ BooleanScorer.prototype.write = function () {
 	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
 		doc.score *= this._query.boost;
 		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
-		this.emit('data', doc);
+		this.emit(doc);
 	}
 	
 	//remove documents with lowestID
@@ -1482,58 +1273,62 @@ BooleanScorer.prototype.write = function () {
 			this._inputs[x].collector.drain();
 		}
 	}
-	
-	return true;
 };
 
 /**
  */
 
-BooleanScorer.prototype.end = function () {
+BooleanScorer.prototype.onResume = function () {
+	var self = this;
+	setTimeout(function () {
+		self.match();
+	}, 0);
+};
+
+/**
+ */
+
+BooleanScorer.prototype.onEnd = function () {
 	//sanity check
 	if (this._collectorCount) {
 		throw new Error("BooleanScorer#end called while there are still collectors attached!");
 	}
 	
-	this.emit('end');
-	this.destroy();
+	this.emitEnd();
+	this._cleanup();
 };
 
 /**
+ * @param {Error} err
  */
 
-BooleanScorer.prototype.pause = function () {
-	this._paused = true;
+BooleanScorer.prototype.onError = function (err) {
+	this.emitError(err);
+	this._cleanup();
 };
 
 /**
+ * @private
  */
 
-BooleanScorer.prototype.resume = function () {
-	this._paused = false;
-	this.write();
-};
-
-/**
- */
-
-BooleanScorer.prototype.destroy = function () {
+BooleanScorer.prototype._cleanup = function () {
 	var x, xl;
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
 		if (this._inputs[x].collector) {
-			this._inputs[x].collector.destroy();
+			this._inputs[x].collector.end();
 		}
 	}
-	Stream.prototype.destroy.call(this);
+	this._inputs = [];
 };
 
 
 /**
  * @protected
  * @constructor
+ * @extends {BooleanClause}
  * @param {Query} query
  * @param {Occur} occur
- * @param {WritableStream} collector
+ * @param {Stream} collector
  */
 
 function BooleanClauseStream(query, occur, collector) {
@@ -1546,7 +1341,7 @@ function BooleanClauseStream(query, occur, collector) {
 BooleanClauseStream.prototype = Object.create(BooleanClause.prototype);
 
 /**
- * @type {WritableStream}
+ * @type {Stream}
  */
 
 BooleanClauseStream.prototype.collector;
@@ -1694,7 +1489,7 @@ FilterQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 FilterQuery.prototype.score = function (similarity, index) {
@@ -1729,8 +1524,6 @@ FilterQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {FilterQuery} query
  * @param {Similarity} similarity
  */
@@ -1765,32 +1558,36 @@ FilterScorer.prototype._similarity;
 
 FilterScorer.prototype._maxOverlap;
 
-FilterScorer.prototype.readable = true;
-
-FilterScorer.prototype.writable = true;
-
 /**
  * @param {DocumentTerms} doc
  */
 
-FilterScorer.prototype.write = function (doc) {
+FilterScorer.prototype.onWrite = function (doc) {
+	var boost = this._query.boost;
 	if (this._query.filter(doc)) {
-		doc.score *= this._query.boost;
-		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
-		this.emit('data', doc);
+		doc.score *= boost;
+		doc.sumOfSquaredWeights *= boost * boost;
+		this.emit(doc);
 	}
 };
 
 /**
- * @param {DocumentTerms} [doc]
+ * @param {Array.<DocumentTerms>} docs
  */
 
-FilterScorer.prototype.end = function (doc) {
-	if (typeof doc !== "undefined") {
-		this.write(doc);
+FilterScorer.prototype.onBulkWrite = function (docs) {
+	var x, xl 
+	boost = this._query.boost;
+	
+	docs = docs.filter(this._query.filter);
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		if (filter(docs[x])) {
+			docs[x].score *= boost;
+			docs[x].sumOfSquaredWeights *= boost * boost;
+		}
 	}
-	this.emit('end');
-	this.destroy();
+	
+	this.emitBulk(docs);
 };
 
 
@@ -1825,7 +1622,7 @@ NormalizedQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 NormalizedQuery.prototype.score = function (similarity, index) {
@@ -1860,8 +1657,6 @@ NormalizedQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {NormalizedQuery} query
  * @param {Similarity} similarity
  */
@@ -1896,30 +1691,28 @@ NormalizedScorer.prototype._similarity;
 
 NormalizedScorer.prototype._maxOverlap;
 
-NormalizedScorer.prototype.readable = true;
-
-NormalizedScorer.prototype.writable = true;
-
 /**
  * @param {DocumentTerms} doc
  */
 
-NormalizedScorer.prototype.write = function (doc) {
+NormalizedScorer.prototype.onWrite = function (doc) {
 	doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
 	//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
-	this.emit('data', doc);
+	this.emit(doc);
 };
 
 /**
- * @param {DocumentTerms} [doc]
+ * @param {Array.<DocumentTerms>} docs
  */
 
-NormalizedScorer.prototype.end = function (doc) {
-	if (typeof doc !== "undefined") {
-		this.write(doc);
+NormalizedScorer.prototype.onBulkWrite = function (docs) {
+	var x, xl, doc;
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		doc = docs[x];
+		doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
+		//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
 	}
-	this.emit('end');
-	this.destroy();
+	this.emitBulk(docs);
 };
 
 
@@ -1968,7 +1761,7 @@ PhraseQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 PhraseQuery.prototype.score = function (similarity, index) {
@@ -2044,7 +1837,7 @@ PrefixQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 PrefixQuery.prototype.score = function (similarity, index) {
@@ -3142,7 +2935,7 @@ TermQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 TermQuery.prototype.score = function (similarity, index) {
@@ -3175,8 +2968,6 @@ TermQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {Query} query
  * @param {Similarity} similarity
  */
@@ -3203,15 +2994,11 @@ TermScorer.prototype._boost;
 
 TermScorer.prototype._similarity;
 
-TermScorer.prototype.readable = true;
-
-TermScorer.prototype.writable = true;
-
 /**
  * @param {TermVector} termVec
  */
 
-TermScorer.prototype.write = function (termVec) {
+TermScorer.prototype.onWrite = function (termVec) {
 	var similarity = this._similarity,
 		doc = new DocumentTerms(termVec.documentID, [termVec]),
 		idf = similarity.idf(termVec);
@@ -3225,19 +3012,36 @@ TermScorer.prototype.write = function (termVec) {
 		this._boost * 
 		similarity.norm(termVec);
 	
-	this.emit('data', doc);
+	this.emit(doc);
 };
 
 /**
- * @param {TermVector} [termVec]
+ * @param {Array.<TermVector>} termVecs
  */
 
-TermScorer.prototype.end = function (termVec) {
-	if (typeof termVec !== "undefined") {
-		this.write(termVec);
+TermScorer.prototype.onBulkWrite = function (termVecs) {
+	var similarity = this._similarity,
+		termVec, doc, idf,
+		docs = new Array(termVecs.length);
+	
+	for (x = 0, xl = termVecs.length; x < xl; ++x) {
+		termVec = termVecs[x];
+		doc = new DocumentTerms(termVec.documentID, [termVec]);
+		idf = similarity.idf(termVec);
+		
+		//compute sumOfSquaredWeights
+		doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
+		
+		//compute score
+		doc.score = similarity.tf(termVec) * 
+			idf * idf *
+			this._boost * 
+			similarity.norm(termVec);
+		
+		docs[x] = doc;
 	}
-	this.emit('end');
-	this.destroy();
+	
+	this.emitBulk(docs);
 };
 
 
@@ -3302,7 +3106,7 @@ TermRangeQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
@@ -3378,16 +3182,32 @@ TopDocumentsCollector.prototype.lowestScore = 0;
 
 /**
  * @param {DocumentTerms} doc
- * @override
  */
 
-TopDocumentsCollector.prototype.write = function (doc) {
+TopDocumentsCollector.prototype.onWrite = function (doc) {
 	if (this.collection.length < this.max || doc.score > this.lowestScore) {
 		if (this.collection.length >= this.max) {
 			this.collection.pop();  //remove lowest scored document
 		}
 		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
 		this.lowestScore = this.collection[this.collection.length - 1].score;
+	}
+};
+
+/**
+ * @param {Array.<DocumentTerms>} docs
+ */
+
+TopDocumentsCollector.prototype.onBulkWrite = function (docs) {
+	var x, xl;
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		if (this.collection.length < this.max || docs[x].score > this.lowestScore) {
+			if (this.collection.length >= this.max) {
+				this.collection.pop();  //remove lowest scored document
+			}
+			Array.orderedInsert(this.collection, docs[x], TopDocumentsCollector.compareScores);
+			this.lowestScore = this.collection[this.collection.length - 1].score;
+		}
 	}
 };
 

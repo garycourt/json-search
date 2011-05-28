@@ -1,66 +1,6 @@
 /**
  * @interface
  */
- 
-function Emitter() {};
-
-/**
- * @param {string} type
- * @param {...*} [args]
- * @return {boolean}
- */
-
-Emitter.prototype.emit = function (type, args) {};
-
-/**
- * @param {string} type
- * @param {function(...)} listener
- * @return {EventEmitter}
- */
-
-Emitter.prototype.addListener = function (type, listener) {};
-
-/**
- * @param {string} type
- * @param {function(...)} listener
- * @return {EventEmitter}
- */
-
-Emitter.prototype.on = function (type, listener) {};
-
-/**
- * @param {string} type
- * @param {function(...)} listener
- * @return {EventEmitter}
- */
-
-Emitter.prototype.once = function (type, listener) {};
-
-/**
- * @param {string} type
- * @param {function(...)} listener
- * @return {EventEmitter}
- */
-
-Emitter.prototype.removeListener = function (type, listener) {};
-
-/**
- * @param {string} type
- * @return {EventEmitter}
- */
-
-Emitter.prototype.removeAllListeners = function (type) {};
-
-/**
- * @param {string} type
- * @return {Array.<function(...)>}
- */
-
-Emitter.prototype.listeners = function (type) {};
-
-/**
- * @interface
- */
 
 function Index() {};
 
@@ -97,7 +37,7 @@ Index.prototype.setTermIndexer = function (indexer, callback) {};
 /**
  * @param {FieldName} field
  * @param {Term} term
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Index.prototype.getTermVectors = function (field, term) {};
@@ -108,7 +48,7 @@ Index.prototype.getTermVectors = function (field, term) {};
  * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Index.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {};
@@ -128,7 +68,7 @@ Query.prototype.boost;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Query.prototype.score = function (similarity, index) {};
@@ -144,41 +84,6 @@ Query.prototype.extractTerms = function () {};
  */
 
 Query.prototype.rewrite = function () {};
-
-/**
- * @interface
- * @extends {Emitter}
- */
-
-function ReadableStream() {}
-
-/**
- * @type {boolean}
- */
-
-ReadableStream.prototype.readable;
-
-/**
- * @param {WritableStream} dest
- * @param {Object} [options]
- */
-
-ReadableStream.prototype.pipe = function (dest, options) {};
-
-/**
- */
-
-ReadableStream.prototype.pause = function () {};
-
-/**
- */
-
-ReadableStream.prototype.resume = function () {};
-
-/**
- */
-
-ReadableStream.prototype.destroy = function () {};
 
 /**
  * @interface
@@ -322,38 +227,7 @@ TermVector.prototype.documentFrequency;
 TermVector.prototype.totalDocuments;
 
 /**
- * @interface
- * @extends {Emitter}
- */
-
-function WritableStream() {}
-
-/**
- * @type {boolean}
- */
-
-WritableStream.prototype.writable;
-
-/**
- * @param {...?} data
- * @return {boolean}
- */
-
-WritableStream.prototype.write = function (data) {};
-
-/**
- * @param {...?} [data]
- */
-
-WritableStream.prototype.end = function (data) {};
-
-/**
- */
-
-WritableStream.prototype.destroy = function () {};
-
-/**
- * @typedef {(Error|string|null|undefined)}
+ * @typedef {(Error|string|number|boolean|null|undefined)}
  */
 
 var PossibleError;

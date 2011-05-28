@@ -13,7 +13,7 @@ Query.prototype.boost;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 Query.prototype.score = function (similarity, index) {};

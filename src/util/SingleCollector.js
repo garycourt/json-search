@@ -1,22 +1,21 @@
 /**
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
+ * @param {function(PossibleError, *=)} listener
  */
 
-function SingleCollector() {
+function SingleCollector(listener) {
 	Stream.call(this);
+	this.listener = listener;
 };
 
 SingleCollector.prototype = Object.create(Stream.prototype);
 
 /**
- * @private
- * @type {boolean}
+ * @type {function(PossibleError, *=)|null}
  */
 
-SingleCollector.prototype._writing = false;
+SingleCollector.prototype.listener;
 
 /**
  * @type {*}
@@ -25,51 +24,52 @@ SingleCollector.prototype._writing = false;
 SingleCollector.prototype.data;
 
 /**
- * @type {boolean}
- */
-
-SingleCollector.prototype.readable = true;
-
-/**
- * @type {boolean}
- */
-
-SingleCollector.prototype.writable = true;
-
-/**
  * @param {*} data
- * @return {boolean}
  */
 
-SingleCollector.prototype.write = function (data) {
+SingleCollector.prototype.onWrite = function (data) {
 	if (typeof this.data !== "undefined") {
 		throw new Error("Stream is full");
 	}
 	
 	this.data = data;
-	this._writing = true;
-	this.emit('data', data);
-	this._writing = false;
-	return (typeof this.data === "undefined");
-};
-
-SingleCollector.prototype.drain = function () {
-	this.data = undefined;
-	if (!this._writing) {
-		this.emit('drain');
+	if (this.listener) {
+		this.listener(null, data);
+	}
+	if (typeof this.data !== "undefined") {
+		this.pause();
 	}
 };
 
 /**
- * @param {*} [data]
  */
 
-SingleCollector.prototype.end = function (data) {
-	if (typeof data !== "undefined") {
-		this.write(data);
+SingleCollector.prototype.drain = function () {
+	this.data = undefined;
+	this.resume();
+};
+
+/**
+ */
+
+SingleCollector.prototype.onEnd = function () {
+	if (this.listener) {
+		this.listener(true);
+		this.listener = null;
 	}
-	this.emit('end');
-	this.destroy();
+	this.emitEnd();
+};
+
+/**
+ * @param {Error} err
+ */
+
+SingleCollector.prototype.onError = function (err) {
+	if (this.listener) {
+		this.listener(err);
+		this.listener = null;
+	}
+	this.emitError(err);
 };
 
 

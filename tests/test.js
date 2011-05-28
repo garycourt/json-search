@@ -2,6 +2,8 @@
  * Index
  */
 
+console.profile();
+
 var index = new MemoryIndex();
 
 index.addDocument({
@@ -29,6 +31,8 @@ index.addDocument({
 	body : "Python is an interpreted, general-purpose high-level programming language whose design philosophy emphasizes code readability. Python aims to combine 'remarkable power with very clear syntax', and its standard library is large and comprehensive. Its use of indentation for block delimiters is unique among popular programming languages.Python supports multiple programming paradigms, primarily but not limited to object-oriented, imperative and, to a lesser extent, functional programming styles. It features a fully dynamic type system and automatic memory management, similar to that of Scheme, Ruby, Perl, and Tcl. Like other dynamic languages, Python is often used as a scripting language, but is also used in a wide range of non-scripting contexts.The reference implementation of Python (CPython) is free and open source software and has a community-based development model, as do all or nearly all of its alternative implementations. CPython is managed by the non-profit Python Software Foundation.Python interpreters are available for many operating systems, and Python programs can be packaged into stand-alone executable code for many systems using various tools."
 }, "python");
 
+console.profileEnd();
+
 /**
  * Searcher
  */
@@ -46,14 +50,14 @@ function testTermSearch(field, term) {
 }
 
 function testBooleanSearch(clauses) {
-	//console.profile();
+	console.profile();
 	searcher.search(new BooleanQuery(clauses), 10, function (err, docs) {
 		if (!err) {
 			console.log(docs);
 		} else {
 			console.error(err);
 		}
-		//console.profileEnd();
+		console.profileEnd();
 	});
 }
 

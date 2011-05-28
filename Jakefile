@@ -73,8 +73,6 @@ function compileDirs(dirs, output, callback) {
 			}).sort(function (a, b) {
 				if (a === 'common.js') { return -1; }
 				if (b === 'common.js') { return 1; }
-				if (a === 'EventEmitter.js') { return -1; }
-				if (b === 'EventEmitter.js') { return 1; }
 				if (a === 'Stream.js') { return -1; }
 				if (b === 'Stream.js') { return 1; }
 				if (a < b) { return -1; }

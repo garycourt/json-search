@@ -162,15 +162,21 @@ MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
 /**
  * @param {FieldName} field
  * @param {Term} term
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
 		self = this,
-		stream = new ArrayStream(entries);
-	return stream.start();
+		stream = new Stream();
+		
+	stream.pause();             //allow caller to attach to stream
+	stream.bulkWrite(entries);  //buffered
+	stream.end();               //buffered
+	stream.resume();            //asynchronous
+	
+	return stream;
 };
 
 /**
@@ -179,7 +185,7 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
  * @param {Term} endTerm
  * @param {boolean} [excludeStart]
  * @param {boolean} [excludeEnd]
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {
@@ -187,7 +193,8 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 		endKey = JSON.stringify([field, endTerm]),
 		i = this.indexOfKey(startKey),
 		il = this._indexKeys.length,
-		result = [];
+		result = [],
+		stream = new Stream();
 	
 	if (excludeStart && this._indexKeys[i] === startKey) {
 		++i;
@@ -205,7 +212,12 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 		}
 	}
 	
-	return (new ArrayStream(result)).start();
+	setTimeout(function () {
+		stream.bulkWrite(entries);
+		stream.end();
+	}, 0);
+	
+	return stream;
 };
 
 /**

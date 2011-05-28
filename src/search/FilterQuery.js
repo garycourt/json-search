@@ -33,7 +33,7 @@ FilterQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 FilterQuery.prototype.score = function (similarity, index) {
@@ -68,8 +68,6 @@ FilterQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {FilterQuery} query
  * @param {Similarity} similarity
  */
@@ -104,32 +102,36 @@ FilterScorer.prototype._similarity;
 
 FilterScorer.prototype._maxOverlap;
 
-FilterScorer.prototype.readable = true;
-
-FilterScorer.prototype.writable = true;
-
 /**
  * @param {DocumentTerms} doc
  */
 
-FilterScorer.prototype.write = function (doc) {
+FilterScorer.prototype.onWrite = function (doc) {
+	var boost = this._query.boost;
 	if (this._query.filter(doc)) {
-		doc.score *= this._query.boost;
-		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
-		this.emit('data', doc);
+		doc.score *= boost;
+		doc.sumOfSquaredWeights *= boost * boost;
+		this.emit(doc);
 	}
 };
 
 /**
- * @param {DocumentTerms} [doc]
+ * @param {Array.<DocumentTerms>} docs
  */
 
-FilterScorer.prototype.end = function (doc) {
-	if (typeof doc !== "undefined") {
-		this.write(doc);
+FilterScorer.prototype.onBulkWrite = function (docs) {
+	var x, xl 
+	boost = this._query.boost;
+	
+	docs = docs.filter(this._query.filter);
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		if (filter(docs[x])) {
+			docs[x].score *= boost;
+			docs[x].sumOfSquaredWeights *= boost * boost;
+		}
 	}
-	this.emit('end');
-	this.destroy();
+	
+	this.emitBulk(docs);
 };
 
 

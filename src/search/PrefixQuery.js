@@ -33,7 +33,7 @@ PrefixQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 PrefixQuery.prototype.score = function (similarity, index) {

@@ -1,161 +1,336 @@
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 /**
  * @constructor
- * @extends {EventEmitter}
  */
 
-function Stream() {
-	EventEmitter.call(this);
-}
-
-Stream.prototype = Object.create(EventEmitter.prototype);
+function Stream() {}
 
 /**
+ * @private
+ * @type {Stream}
+ */
+
+Stream.prototype._streamInput = null;
+
+/**
+ * @private
+ * @type {Stream}
+ */
+
+Stream.prototype._streamOutput = null;
+
+/**
+ * @private
+ * @type {Array.<Array.<*>>}
+ */
+
+Stream.prototype._streamBuffer = null;
+
+/**
+ * @private
  * @type {boolean}
  */
 
-Stream.prototype.readable = false;
+Stream.prototype._streamPaused = false;
 
 /**
+ * @private
  * @type {boolean}
  */
 
-Stream.prototype.writable = false;
+Stream.prototype._streamEnded = false;
 
 /**
- * @param {WritableStream} dest
- * @param {Object} [options]
+ * @private
+ * @type {Error|string|null}
  */
 
-Stream.prototype.pipe = function (dest, options) {
-	var source = this;
+Stream.prototype._streamError = null;
 
-	/**
-	 * @param {?} chunk
-	 */
+/**
+ * @private
+ * @type {boolean}
+ */
 
-	function ondata(chunk) {
-		if (dest.writable) {
-			if (false === dest.write(chunk)) source.pause();
-		}
-	}
+Stream.prototype._streamDraining = false;
 
-	source.on('data', ondata);
-	
-	function onerror(err) {
-		dest.emit('error', err);
-		source.destroy();
-	};
-	
-	if (!options || options.error !== false) {
-		source.on('error', onerror);
-	}
+/**
+ * @private
+ */
 
-	function ondrain() {
-		if (source.readable) source.resume();
-	}
-
-	dest.on('drain', ondrain);
-
-	/*
-	 * If the 'end' option is not supplied, dest.end() will be called when
-	 * source gets the 'end' event.
-	 */
-
-	function onend() {
-		dest.end();
-	}
-
-	if (!options || options.end !== false) {
-		source.on('end', onend);
-		source.on('close', onend);
-	}
-
-	function onpause() {
-		source.pause();
-	}
-
-	dest.on('pause', onpause);
-
-	function onresume() {
-		if (source.readable) source.resume();
-	};
-
-	dest.on('resume', onresume);
-
-	function cleanup() {
-		source.removeListener('data', ondata);
-		source.removeListener('error', onerror);
-		dest.removeListener('drain', ondrain);
-		source.removeListener('end', onend);
-		source.removeListener('close', onend);
-
-		dest.removeListener('pause', onpause);
-		dest.removeListener('resume', onresume);
-
-		source.removeListener('end', cleanup);
-		source.removeListener('close', cleanup);
-		source.removeListener('error', cleanup);
-
-		dest.removeListener('end', cleanup);
-		dest.removeListener('close', cleanup);
+Stream.prototype._streamDrain = function () {
+	var pointer, subpointer, sublength;
+	if (this._streamBuffer && !this._streamPaused && !this._streamDraining) {
+		this._streamDraining = true;
 		
-		//dest.emit('pipeDisconnected', source);
-	};
+		try {
+			for (pointer = 0; !this._streamPaused && pointer < this._streamBuffer.length; ++pointer) {
+				if (this._streamBuffer[pointer].length > 1) {
+					if (this.onBulkWrite !== Stream.prototype.onBulkWrite) {
+						this.onBulkWrite(this._streamBuffer[pointer]);
+					} else {
+						for (subpointer = 0, sublength = this._streamBuffer[pointer].length; !this._streamPaused && subpointer < sublength; ++subpointer) {
+							this.onWrite(this._streamBuffer[pointer][subpointer]);
+						}
+						if (subpointer < sublength) {
+							this._streamBuffer[pointer] = this._streamBuffer[pointer].slice(subpointer);
+							break;  //stop executing, don't increment pointer
+						}
+					}
+				} else if (this._streamBuffer[pointer].length === 1) {
+					this.onWrite(this._streamBuffer[pointer][0]);
+				}
+			}
+		} catch(e) {
+			this.error(e);
+			pointer = this._streamBuffer.length;
+		}
+		
+		if (!this._streamPaused && pointer >= this._streamBuffer.length) {
+			this._streamBuffer = null;
+			if (this._streamEnded) {
+				try {
+					if (this._streamError) {
+						this.onError(this._streamError);
+					} else {
+						this.onEnd();
+					}
+				} catch(e) {}  //ignore any errors
+			}
+		} else {
+			this._streamBuffer = this._streamBuffer.slice(pointer);
+		}
+		
+		this._streamDraining = false;
+	}
+};
 
-	source.on('end', cleanup);
-	source.on('close', cleanup);
-	source.on('error', cleanup);
+/**
+ * @param {Stream} output
+ */
 
-	dest.on('end', cleanup);
-	dest.on('close', cleanup);
+Stream.prototype.pipe = function (output) {
+	if (this._streamOutput) {
+		throw new Error("Stream already has an output");
+	}
+	if (output._streamInput) {
+		throw new Error("Output stream already has an input");
+	}
+	
+	this._streamOutput = output;
+	output._streamInput = this;
+	output._streamEnded = false;
+	output._streamError = null;
+	
+	output.onStart(this);
+};
 
-	//dest.emit('pipeConnected', source);
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.write = function (entry) {
+	if (!this._streamPaused) {
+		this.onWrite(entry);
+	} else {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = [ entry ];
+	}
+};
+
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.emit = function (entry) {
+	if (this._streamOutput) {
+		this._streamOutput.write(entry);
+	}
+};
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.bulkWrite = function (entries) {
+	if (!this._streamPaused) {
+		this.onBulkWrite(entries);
+	} else {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = entries;
+	}
+};
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.emitBulk = function (entries) {
+	if (this._streamOutput) {
+		this._streamOutput.bulkWrite(entries);
+	}
+};
+
+/**
+ * @return {boolean}
+ */
+
+Stream.prototype.isPaused = function () {
+	return this._streamPaused;
 };
 
 /**
  */
 
 Stream.prototype.pause = function () {
-	this.emit('pause');
+	if (!this._streamPaused) {
+		this._streamPaused = true;
+		if (this.onPause) {
+			this.onPause();
+		}
+		if (this._streamInput) {
+			this._streamInput.pause();
+		}
+	}
 };
 
 /**
  */
 
 Stream.prototype.resume = function () {
-	this.emit('resume');
+	var self = this;
+	if (this._streamPaused) {
+		this._streamPaused = false;
+		if (this.onResume) {
+			this.onResume();
+		}
+		if (this._streamBuffer) {
+			setTimeout(function () {
+				self._streamDrain();
+			}, 0);
+		}
+		if (this._streamInput) {
+			this._streamInput.resume();
+		}
+	}
 };
 
 /**
  */
 
-Stream.prototype.destroy = function () {
-	this.readable = false;
-	this.writable = false;
-	this.emit('close');
-	this.removeAllListeners();
+Stream.prototype.end = function () {
+	if (!this._streamEnded) {
+		this._streamEnded = true;
+		
+		if (!this._streamPaused && !this._streamBuffer) {
+			this.onEnd();
+		} else {
+			if (!this._streamBuffer) {
+				this._streamBuffer = [];
+			}
+		}
+	}
 };
+
+/**
+ */
+
+Stream.prototype.emitEnd = function () {
+	this._streamEnded = true;
+	if (this._streamOutput) {
+		this._streamOutput.end();
+		this._streamOutput._streamInput = null;
+		this._streamOutput = null;
+	}
+};
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.error = function (error) {
+	if (!this._streamEnded) {
+		this._streamEnded = true;
+		this._streamError = error;
+		
+		if (!this._streamPaused && !this._streamBuffer) {
+			this.onError(error);
+		} else {
+			if (!this._streamBuffer) {
+				this._streamBuffer = [];
+			}
+		}
+	}
+};
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.emitError = function (error) {
+	this._streamEnded = true;
+	this._streamError = error;
+	if (this._streamOutput) {
+		this._streamOutput.error(error);
+		this._streamOutput._streamInput = null;
+		this._streamOutput = null;
+	}
+};
+
+/**
+ * @param {Stream} input
+ */
+
+Stream.prototype.onStart = function (input) {};
+
+/**
+ * @param {*} entry
+ */
+
+Stream.prototype.onWrite = Stream.prototype.emit;
+
+/**
+ * @param {Array.<*>} entries
+ */
+
+Stream.prototype.onBulkWrite = function (entries) {
+	if (this.onWrite !== Stream.prototype.onWrite) {
+		if (!this._streamBuffer) {
+			this._streamBuffer = [];
+		}
+		this._streamBuffer[this._streamBuffer.length] = entries;
+		
+		this._streamDrain();
+	} else {
+		this.emitBulk(entries);
+	}
+};
+
+/**
+ * @type {function()|undefined}
+ */
+
+Stream.prototype.onPause;
+
+/**
+ * @type {function()|undefined}
+ */
+
+Stream.prototype.onResume;
+
+/**
+ */
+
+Stream.prototype.onEnd = Stream.prototype.emitEnd;
+
+/**
+ * @param {Error|string} error
+ */
+
+Stream.prototype.onError = Stream.prototype.emitError;
 
 
 exports.Stream = Stream;

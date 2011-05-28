@@ -1,8 +1,7 @@
 /**
  * @constructor
  * @extends {Stream}
- * @implements {WritableStream}
- * @param {function(PossibleError, Array=)} [callback]
+ * @param {function(PossibleError, Array.<*>=)} [callback]
  */
 
 function Collector(callback) {
@@ -10,19 +9,12 @@ function Collector(callback) {
 	Stream.call(this);
 	this.collection = [];
 	this.callback = callback || null;
-	
-	this.on('error', function (err) {
-		if (self.callback) {
-			self.callback(err);
-			self.callback = null;
-		}
-	});
 };
 
 Collector.prototype = Object.create(Stream.prototype);
 
 /**
- * @type {Array}
+ * @type {Array.<*>}
  */
 
 Collector.prototype.collection;
@@ -34,38 +26,38 @@ Collector.prototype.collection;
 Collector.prototype.callback = null;
 
 /**
- * @type {boolean}
+ * @param {*} entry
  */
 
-Collector.prototype.writable = true;
-
-/**
- * @param {?} data
- * @return {boolean}
- */
-
-Collector.prototype.write = function (data) {
-	this.collection.push(data);
-	return true;
+Collector.prototype.onWrite = function (entry) {
+	this.collection.push(entry);
 };
 
 /**
- * @param {?} [data]
+ * @param {Array.<*>} entries
  */
 
-Collector.prototype.end = function (data) {
-	if (typeof data !== "undefined") {
-		this.write(data);
-	}
-	this.destroy();
+Collector.prototype.onBulkWrite = function (entries) {
+	this.collection = this.collection.concat(entries);
 };
 
 /**
  */
 
-Collector.prototype.destroy = function () {
+Collector.prototype.onEnd = function () {
 	if (this.callback) {
 		this.callback(null, this.collection);
+		this.callback = null;
+	}
+};
+
+/**
+ * @param {Error} err
+ */
+
+Collector.prototype.onError = function (err) {
+	if (this.callback) {
+		this.callback(err);
 		this.callback = null;
 	}
 };

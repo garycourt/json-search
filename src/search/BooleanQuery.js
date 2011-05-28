@@ -32,7 +32,7 @@ BooleanQuery.prototype.boost = 1.0;
 /**
  * @param {Similarity} similarity
  * @param {Index} index
- * @return {ReadableStream}
+ * @return {Stream}
  */
 
 BooleanQuery.prototype.score = function (similarity, index) {
@@ -85,8 +85,6 @@ BooleanQuery.prototype.rewrite = function () {
  * @protected
  * @constructor
  * @extends {Stream}
- * @implements {ReadableStream}
- * @implements {WritableStream}
  * @param {BooleanQuery} query
  * @param {Similarity} similarity
  * @param {Index} index
@@ -140,71 +138,45 @@ BooleanScorer.prototype._inputs;
 BooleanScorer.prototype._collectorCount = 0;
 
 /**
- * @protected
- * @type {boolean}
- */
-
-BooleanScorer.prototype._paused = false;
-
-/**
- * @type {boolean}
- */
-
-BooleanScorer.prototype.readable = true;
-
-/**
- * @type {boolean}
- */
-
-BooleanScorer.prototype.writable = true;
-
-/**
  * @param {Array.<BooleanClause>} clauses
  */
 
 BooleanScorer.prototype.addInputs = function (clauses) {
-	var self = this, x, xl, clause, collector, bcs, remover;
-	for (x = 0, xl = clauses.length; x < xl; ++x) {
-		clause = clauses[x];
-		collector = new SingleCollector();
-		bcs = new BooleanClauseStream(clause.query, clause.occur, collector);
-		
-		collector.pipe(this, {end : false});
-		clause.query.score(this._similarity, this._index).pipe(collector);
-		
-		this._inputs.push(bcs);
-		this._collectorCount++;
-		
-		remover = (function (b) {
-			return function () {
-				b.collector.removeListener('end', arguments.callee);
-				b.collector.removeListener('close', arguments.callee);
-				b.collector = null;
+	var self = this;
+	clauses.forEach(function (clause) {
+		var collector = new SingleCollector(function onCollection(done, data) {
+			if (!done) {
+				self.match();
+			} else if (done === true) {
+				bcs.collector = null;
 				self._collectorCount--;
 				
-				if (self._collectorCount === 0 || b.occur === Occur.MUST) {
+				if (self._collectorCount === 0 || bcs.occur === Occur.MUST) {
 					self._collectorCount = 0;  //to pass sanity checks
 					self.end();
 				} else if (self._collectorCount > 0) {
-					self.write();
+					self.match();
 				}
+			} else {  //done instanceof Error
+				self.error(done);
 			}
-		})(bcs);
+		}), 
+		bcs = new BooleanClauseStream(clause.query, clause.occur, collector);
 		
-		collector.on('end', remover);
-		collector.on('close', remover);
-	}
+		clause.query.score(self._similarity, self._index).pipe(collector);
+		self._inputs.push(bcs);
+		self._collectorCount++;
+	});
 };
 
 /**
- * @return {boolean}
  */
 
-BooleanScorer.prototype.write = function () {
+BooleanScorer.prototype.match = function () {
 	var x, xl, docs = [], lowestIndex = 0, lowestID, match = false, optionalMatches = 0, doc;
 	
-	if (this._paused) {
-		return true;  //scorer is paused, proceed no further
+	if (this.isPaused()) {
+		return;  //scorer is paused, proceed no further
 	}
 	
 	//collect all documents, find lowest document ID
@@ -213,7 +185,7 @@ BooleanScorer.prototype.write = function () {
 			docs[x] = this._inputs[x].collector.data;
 			
 			if (typeof docs[x] === "undefined") {
-				return true;  //not all collectors are full
+				return;  //not all collectors are full
 			}
 		} else {
 			docs[x] = undefined;
@@ -251,7 +223,7 @@ BooleanScorer.prototype.write = function () {
 	if (match && optionalMatches >= this._query.minimumOptionalMatches) {
 		doc.score *= this._query.boost;
 		doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;
-		this.emit('data', doc);
+		this.emit(doc);
 	}
 	
 	//remove documents with lowestID
@@ -260,58 +232,62 @@ BooleanScorer.prototype.write = function () {
 			this._inputs[x].collector.drain();
 		}
 	}
-	
-	return true;
 };
 
 /**
  */
 
-BooleanScorer.prototype.end = function () {
+BooleanScorer.prototype.onResume = function () {
+	var self = this;
+	setTimeout(function () {
+		self.match();
+	}, 0);
+};
+
+/**
+ */
+
+BooleanScorer.prototype.onEnd = function () {
 	//sanity check
 	if (this._collectorCount) {
 		throw new Error("BooleanScorer#end called while there are still collectors attached!");
 	}
 	
-	this.emit('end');
-	this.destroy();
+	this.emitEnd();
+	this._cleanup();
 };
 
 /**
+ * @param {Error} err
  */
 
-BooleanScorer.prototype.pause = function () {
-	this._paused = true;
+BooleanScorer.prototype.onError = function (err) {
+	this.emitError(err);
+	this._cleanup();
 };
 
 /**
+ * @private
  */
 
-BooleanScorer.prototype.resume = function () {
-	this._paused = false;
-	this.write();
-};
-
-/**
- */
-
-BooleanScorer.prototype.destroy = function () {
+BooleanScorer.prototype._cleanup = function () {
 	var x, xl;
 	for (x = 0, xl = this._inputs.length; x < xl; ++x) {
 		if (this._inputs[x].collector) {
-			this._inputs[x].collector.destroy();
+			this._inputs[x].collector.end();
 		}
 	}
-	Stream.prototype.destroy.call(this);
+	this._inputs = [];
 };
 
 
 /**
  * @protected
  * @constructor
+ * @extends {BooleanClause}
  * @param {Query} query
  * @param {Occur} occur
- * @param {WritableStream} collector
+ * @param {Stream} collector
  */
 
 function BooleanClauseStream(query, occur, collector) {
@@ -324,7 +300,7 @@ function BooleanClauseStream(query, occur, collector) {
 BooleanClauseStream.prototype = Object.create(BooleanClause.prototype);
 
 /**
- * @type {WritableStream}
+ * @type {Stream}
  */
 
 BooleanClauseStream.prototype.collector;
