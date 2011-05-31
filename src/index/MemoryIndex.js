@@ -6,7 +6,7 @@
 function MemoryIndex() {
 	this._docs = {};
 	this._index = {};
-	this._indexKeys = [];
+	this._indexKeys = new ScapegoatTree();
 };
 
 /**
@@ -64,7 +64,7 @@ MemoryIndex.prototype._index;
 
 /**
  * @protected
- * @type {Array.<string>}
+ * @type {ScapegoatTree}
  */
 
 MemoryIndex.prototype._indexKeys;
@@ -101,7 +101,7 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 		} else {
 			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
-		Array.orderedInsert(this._indexKeys, key, MemoryIndex.stringComparator);
+		this._indexKeys.insert(key);
 	}
 	
 	if (callback) {
@@ -191,71 +191,19 @@ MemoryIndex.prototype.getTermVectors = function (field, term) {
 MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {
 	var startKey = JSON.stringify([field, startTerm]),
 		endKey = JSON.stringify([field, endTerm]),
-		i = this.indexOfKey(startKey),
-		il = this._indexKeys.length,
-		result = [],
+		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd),
+		i, il
 		stream = new Stream();
-	
-	if (excludeStart && this._indexKeys[i] === startKey) {
-		++i;
+
+	stream.pause();             //allow caller to attach to stream	
+
+	for (i = 0, il = keys.length; i < il; ++i) {
+		stream.bulkWrite(this._index[keys[i]]);  //buffered
 	}
 	
-	if (excludeEnd) {
-		while (i < il && this._indexKeys[i] < endKey) {
-			result = result.concat(this._index[this._indexKeys[i]]);
-			++i;
-		}
-	} else {
-		while (i < il && this._indexKeys[i] <= endKey) {
-			result = result.concat(this._index[this._indexKeys[i]]);
-			++i;
-		}
-	}
-	
-	setTimeout(function () {
-		stream.bulkWrite(entries);
-		stream.end();
-	}, 0);
-	
+	stream.end();               //buffered
+	stream.resume();            //asynchronous
 	return stream;
-};
-
-/**
- * @param {string} key
- * @return {number}
- */
-
-MemoryIndex.prototype.indexOfKey = function (key) {
-	var arr = this._indexKeys, start, end, pivot;
-	
-	if (arr.length === 0) {
-		return 0;
-	}
-	
-	start = 0;
-	end = arr.length - 1;
-	pivot = Math.floor(end / 2);
-	
-	while (start < end) {
-		if (arr[pivot] === key) {
-			return pivot;
-		} else if (arr[pivot] < key) {
-			start = pivot + 1;
-		} else {
-			end = pivot - 1;
-		}
-		pivot = Math.round(start + ((end - start) / 2));
-	}
-	
-	if (start === end) {
-		if (arr[start] < key) {
-			return start + 1;
-		} else {
-			return start;
-		}
-	} 
-	//else
-	return end + 1;
 };
 
 
