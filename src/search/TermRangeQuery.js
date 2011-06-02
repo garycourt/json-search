@@ -61,8 +61,33 @@ TermRangeQuery.prototype.boost = 1.0;
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermScorer(this, similarity);  //FIXME: Scorer should collect and sort results before pipeing
-	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(scorer);
+	var scorer = new TermRangeScorer(this, similarity),
+		collector = new Collector(function (err, terms) {
+			var x, xl, docs = {}, id, result = [];
+			if (!err) {
+				for (x = 0, xl = terms.length; x < xl; ++x) {
+					id = terms[x].documentID;
+					if (!docs[id]) {
+						docs[id] = new DocumentTerms(terms[x].documentID, terms[x]);
+					} else {
+						docs[id].terms.push(terms[x]);
+					}
+				}
+				
+				for (id in docs) {
+					if (terms.hasOwnProperty(id)) {
+						result[result.length] = docs[id];
+					}
+				}
+				docs = null;  //release memory
+				result = result.sort(DocumentTerms.compare);
+				
+				scorer.bulkWrite(result);
+			} else {
+				scorer.error(err);
+			}
+		});
+	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(collector);
 	return scorer;
 };
 
