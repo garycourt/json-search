@@ -98,10 +98,10 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 		key = JSON.stringify([entry[i].field, entry[i].term]);
 		if (!this._index[key]) {
 			this._index[key] = [ entry[i] ];
+			this._indexKeys.insert(key);
 		} else {
 			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
-		this._indexKeys.insert(key);
 	}
 	
 	if (callback) {
@@ -204,6 +204,27 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 	stream.end();               //buffered
 	stream.resume();            //asynchronous
 	return stream;
+};
+
+/**
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
+ * @param {boolean} excludeStart
+ * @param {boolean} excludeEnd
+ * @param {function(PossibleError, Array.<string>)} [callback]
+ */
+
+MemoryIndex.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart, excludeEnd, callback) {
+	var startKey = JSON.stringify([field, startTerm]),
+		endKey = JSON.stringify([field, endTerm]),
+		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd).map(function (key) {
+			return JSON.parse(key)[1];
+		});
+	
+	setTimeout(function () {
+		callback(null, keys);
+	}, 0);
 };
 
 

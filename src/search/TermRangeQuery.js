@@ -55,40 +55,36 @@ TermRangeQuery.prototype.excludeEnd = false;
 TermRangeQuery.prototype.boost = 1.0;
 
 /**
+ * @private
+ * @type {Array.<Term>|null}
+ */
+ 
+TermRangeQuery.prototype._terms = null;
+
+/**
  * @param {Similarity} similarity
  * @param {Index} index
  * @return {Stream}
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermRangeScorer(this, similarity),
-		collector = new Collector(function (err, terms) {
-			var x, xl, docs = {}, id, result = [];
-			if (!err) {
-				for (x = 0, xl = terms.length; x < xl; ++x) {
-					id = terms[x].documentID;
-					if (!docs[id]) {
-						docs[id] = new DocumentTerms(terms[x].documentID, terms[x]);
-					} else {
-						docs[id].terms.push(terms[x]);
-					}
-				}
-				
-				for (id in docs) {
-					if (terms.hasOwnProperty(id)) {
-						result[result.length] = docs[id];
-					}
-				}
-				docs = null;  //release memory
-				result = result.sort(DocumentTerms.compare);
-				
-				scorer.bulkWrite(result);
-			} else {
-				scorer.error(err);
+	var self = this,
+		stream = new Stream();
+	
+	index.getTermRange(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd, function (err, terms) {
+		if (!err) {
+			try {
+				self._terms = terms;
+				(new MultiTermQuery(self.field, terms, self.boost)).score(similarity, index).pipe(stream);
+			} catch (e) {
+				stream.error(e);
 			}
-		});
-	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(collector);
-	return scorer;
+		} else {
+			stream.error(err);
+		}
+	});
+	
+	return stream;
 };
 
 /**
@@ -96,10 +92,25 @@ TermRangeQuery.prototype.score = function (similarity, index) {
  */
 
 TermRangeQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVector} */ ({
-		term : this.startTerm,
-		field : this.field
-	})];
+	var terms, result, x, xl;
+	if (this._terms) {
+		terms = this._terms;
+		result = new Array(terms.length);
+		for (x = 0, xl = terms.length; x < xl; ++x) {
+			result[x] = /** @type {TermVector} */ ({
+				term : terms[x],
+				field : this.field
+			});
+		}
+		return result;
+	} else {
+		//we don't know how many terms this range encompasses
+		//the best we can do is return at least one term
+		return [ /** @type {TermVector} */ ({
+			term : this.startTerm,
+			field : this.field
+		})];
+	}
 };
 
 /**

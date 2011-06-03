@@ -1,5 +1,6 @@
 /**
  * @constructor
+ * @implements {Query}
  * @param {Array.<BooleanClause>} [clauses]
  * @param {number} [minimumOptionalMatches]
  * @param {number} [boost]

@@ -1057,10 +1057,10 @@ MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 		key = JSON.stringify([entry[i].field, entry[i].term]);
 		if (!this._index[key]) {
 			this._index[key] = [ entry[i] ];
+			this._indexKeys.insert(key);
 		} else {
 			Array.orderedInsert(this._index[key], entry[i], MemoryIndex.documentIDComparator);
 		}
-		this._indexKeys.insert(key);
 	}
 	
 	if (callback) {
@@ -1165,6 +1165,27 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 	return stream;
 };
 
+/**
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
+ * @param {boolean} excludeStart
+ * @param {boolean} excludeEnd
+ * @param {function(PossibleError, Array.<string>)} [callback]
+ */
+
+MemoryIndex.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart, excludeEnd, callback) {
+	var startKey = JSON.stringify([field, startTerm]),
+		endKey = JSON.stringify([field, endTerm]),
+		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd).map(function (key) {
+			return JSON.parse(key)[1];
+		});
+	
+	setTimeout(function () {
+		callback(null, keys);
+	}, 0);
+};
+
 
 exports.MemoryIndex = MemoryIndex;
 
@@ -1209,6 +1230,7 @@ exports.Occur = Occur;
 
 /**
  * @constructor
+ * @implements {Query}
  * @param {Array.<BooleanClause>} [clauses]
  * @param {number} [minimumOptionalMatches]
  * @param {number} [boost]
@@ -1595,6 +1617,16 @@ function DocumentTerms(id, terms) {
 	this.terms = terms || [];
 }
 
+DocumentTerms.compare = function (a, b) {
+	if (a.id < b.id) {
+		return -1;
+	} else if (a.id > b.id) {
+		return 1;
+	} 
+	//else
+	return 0;
+};
+
 /**
  * @type {DocumentID}
  */
@@ -1762,6 +1794,88 @@ FilterScorer.prototype.onBulkWrite = function (docs) {
 exports.FilterQuery = FilterQuery;
 
 /**
+ * @constructor
+ * @implements {Query}
+ * @param {string} field
+ * @param {Array.<Term>} terms
+ * @param {number} [boost]
+ */
+
+function MultiTermQuery(field, terms, boost) {
+	this.field = field;
+	this.terms = terms;
+	this.boost = boost || 1.0;
+};
+
+/**
+ * @type {string}
+ */
+
+MultiTermQuery.prototype.field;
+
+/**
+ * @type {Array.<Term>}
+ */
+
+MultiTermQuery.prototype.terms;
+
+/**
+ * @type {number}
+ */
+
+MultiTermQuery.prototype.boost = 1.0;
+
+/**
+ * @param {Similarity} similarity
+ * @param {Index} index
+ * @return {Stream}
+ */
+
+MultiTermQuery.prototype.score = function (similarity, index) {
+	return this.rewrite().score(similarity, index);
+};
+
+/**
+ * @return {Array.<TermVector>}
+ */
+
+MultiTermQuery.prototype.extractTerms = function () {
+	var terms, result, x, xl;
+	terms = this.terms;
+	result = new Array(terms.length);
+	for (x = 0, xl = terms.length; x < xl; ++x) {
+		result[x] = /** @type {TermVector} */ ({
+			term : terms[x],
+			field : this.field
+		});
+	}
+	return result;
+};
+
+/**
+ * @return {Query}
+ */
+
+MultiTermQuery.prototype.rewrite = function () {
+	var query, terms, x, xl;
+	if (this.terms.length === 1) {
+		return new TermQuery(this.field, this.terms[0], this.boost);
+	}
+	//else
+	query = new BooleanQuery();
+	query.minimumOptionalMatches = 1;
+	query.boost = this.boost;
+	terms = this.terms;
+	for (x = 0, xl = terms.length; x < xl; ++x) {
+		query.clauses.push(new BooleanClause(new TermQuery(this.field, terms[x]), Occur.SHOULD));
+	}
+	return query;
+};
+
+
+exports.MultiTermQuery = MultiTermQuery;
+
+/**
  * Used only by Searcher. Do not include this in your queries.
  * 
  * @constructor
@@ -1833,7 +1947,6 @@ function NormalizedScorer(query, similarity) {
 	Stream.call(this);
 	this._query = query;
 	this._similarity = similarity;
-	this._maxOverlap = query.extractTerms().length;
 }
 
 NormalizedScorer.prototype = Object.create(Stream.prototype);
@@ -1864,6 +1977,10 @@ NormalizedScorer.prototype._maxOverlap;
  */
 
 NormalizedScorer.prototype.onWrite = function (doc) {
+	if (!this._maxOverlap) {
+		this._maxOverlap = this._query.extractTerms().length;
+	}
+	
 	doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
 	//doc.sumOfSquaredWeights *= this._query.boost * this._query.boost;  //normally this operation is useless
 	this.emit(doc);
@@ -1875,6 +1992,11 @@ NormalizedScorer.prototype.onWrite = function (doc) {
 
 NormalizedScorer.prototype.onBulkWrite = function (docs) {
 	var x, xl, doc;
+	
+	if (!this._maxOverlap) {
+		this._maxOverlap = this._query.extractTerms().length;
+	}
+	
 	for (x = 0, xl = docs.length; x < xl; ++x) {
 		doc = docs[x];
 		doc.score *= this._query.boost * this._similarity.queryNorm(doc) * this._similarity.coord(doc.terms.length, this._maxOverlap);
@@ -3272,15 +3394,36 @@ TermRangeQuery.prototype.excludeEnd = false;
 TermRangeQuery.prototype.boost = 1.0;
 
 /**
+ * @private
+ * @type {Array.<Term>|null}
+ */
+ 
+TermRangeQuery.prototype._terms = null;
+
+/**
  * @param {Similarity} similarity
  * @param {Index} index
  * @return {Stream}
  */
 
 TermRangeQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermScorer(this, similarity);  //FIXME: Scorer should collect and sort results before pipeing
-	index.getTermRangeVectors(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd).pipe(scorer);
-	return scorer;
+	var self = this,
+		stream = new Stream();
+	
+	index.getTermRange(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd, function (err, terms) {
+		if (!err) {
+			try {
+				self._terms = terms;
+				(new MultiTermQuery(self.field, terms, self.boost)).score(similarity, index).pipe(stream);
+			} catch (e) {
+				stream.error(e);
+			}
+		} else {
+			stream.error(err);
+		}
+	});
+	
+	return stream;
 };
 
 /**
@@ -3288,10 +3431,25 @@ TermRangeQuery.prototype.score = function (similarity, index) {
  */
 
 TermRangeQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVector} */ ({
-		term : this.startTerm,
-		field : this.field
-	})];
+	var terms, result, x, xl;
+	if (this._terms) {
+		terms = this._terms;
+		result = new Array(terms.length);
+		for (x = 0, xl = terms.length; x < xl; ++x) {
+			result[x] = /** @type {TermVector} */ ({
+				term : terms[x],
+				field : this.field
+			});
+		}
+		return result;
+	} else {
+		//we don't know how many terms this range encompasses
+		//the best we can do is return at least one term
+		return [ /** @type {TermVector} */ ({
+			term : this.startTerm,
+			field : this.field
+		})];
+	}
 };
 
 /**
