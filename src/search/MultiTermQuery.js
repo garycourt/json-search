@@ -1,19 +1,21 @@
 /**
  * @constructor
  * @implements {Query}
- * @param {string} field
+ * @param {FieldName} field
  * @param {Array.<Term>} terms
+ * @param {boolean} [all]
  * @param {number} [boost]
  */
 
-function MultiTermQuery(field, terms, boost) {
+function MultiTermQuery(field, terms, all, boost) {
 	this.field = field;
 	this.terms = terms;
+	this.all = all || false;
 	this.boost = boost || 1.0;
 };
 
 /**
- * @type {string}
+ * @type {FieldName}
  */
 
 MultiTermQuery.prototype.field;
@@ -23,6 +25,12 @@ MultiTermQuery.prototype.field;
  */
 
 MultiTermQuery.prototype.terms;
+
+/**
+ * @type {boolean}
+ */
+
+MultiTermQuery.prototype.all = false;
 
 /**
  * @type {number}
@@ -62,17 +70,17 @@ MultiTermQuery.prototype.extractTerms = function () {
  */
 
 MultiTermQuery.prototype.rewrite = function () {
-	var query, terms, x, xl;
+	var query, terms, occur, x, xl;
 	if (this.terms.length === 1) {
 		return new TermQuery(this.field, this.terms[0], this.boost);
 	}
 	//else
 	query = new BooleanQuery();
-	query.minimumOptionalMatches = 1;
 	query.boost = this.boost;
 	terms = this.terms;
+	occur = this.all ? Occur.MUST : Occur.SHOULD;
 	for (x = 0, xl = terms.length; x < xl; ++x) {
-		query.clauses.push(new BooleanClause(new TermQuery(this.field, terms[x]), Occur.SHOULD));
+		query.clauses.push(new BooleanClause(new TermQuery(this.field, terms[x]), occur));
 	}
 	return query;
 };

@@ -45,7 +45,17 @@ PhraseQuery.prototype.boost = 1.0;
  */
 
 PhraseQuery.prototype.score = function (similarity, index) {
-	//TODO
+	var stream = new PhraseFilter(this),
+		x, xl, terms = [];
+	
+	for (x = 0, xl = this.terms.length; x < xl; ++x) {
+		if (typeof this.terms[x] !== "undefined") {
+			terms[terms.length] = this.terms[x];
+		}
+	}
+	
+	(new MultiTermQuery(this.field, terms, true, this.boost)).score(similarity, index).pipe(stream);
+	return stream;
 };
 
 /**
@@ -77,6 +87,83 @@ PhraseQuery.prototype.rewrite = function () {
 	}
 	//else
 	return this;
+};
+
+
+/**
+ * @protected
+ * @constructor
+ * @extends {Stream}
+ * @param {PhraseQuery} query
+ */
+
+function PhraseFilter(query) {
+	Stream.call(this);
+	this._query = query;
+};
+
+PhraseFilter.prototype = Object.create(Stream.prototype);
+
+/**
+ * @protected
+ * @type {PhraseQuery}
+ */
+
+PhraseFilter.prototype._query;
+
+/**
+ * @param {DocumentTerms} doc
+ */
+
+PhraseFilter.prototype.onWrite = function (doc) {
+	var x, xl, y, yl, z, zl,
+		phrase = this._query.terms,
+		slop = this._query.slop,
+		termVecs = doc.terms, 
+		termPositions = {},
+		positions,
+		minOffset,
+		maxOffset,
+		sibPositions;
+	
+	//create hash of term positions
+	for (x = 0, xl = termVecs.length; x < xl; ++x) {
+		if (!(termPositions[termVecs[x].term] = termVecs[x].termPositions)) {
+			//no term position information available, just fail
+			return;
+		}
+	}
+	
+	//use the first term in the phrase as the offset to compare to
+	positions = termPositions[phrase[0]];
+	
+	//for each position of the first term
+	for (x = 0, xl = positions.length; x < xl; ++x) {
+		//for each other term
+		for (y = 1, yl = phrase.length; y < yl; ++y) {
+			if (typeof phrase[y] !== "undefined") {
+				minOffset = positions[x] + y - slop;
+				maxOffset = positions[x] + y + slop;
+				sibPositions = termPositions[phrase[y]];
+				//for each position of the other term
+				for (z = 0, zl = sibPositions.length; z < zl; ++z) {
+					//if the position of the other term is within the sloppy offset, we have a match
+					if (sibPositions[z] >= minOffset && sibPositions[z] <= maxOffset) {
+						break;
+					}
+				}
+				//if the above loop completed without breaking, the term was not within the offset
+				if (z >= zl) {
+					break;
+				}
+			}
+		}
+		//if the above loop completed without breaking, we found a doc that matches the phrase
+		if (y >= yl) {
+			this.emit(doc);
+			break;
+		}
+	}
 };
 
 

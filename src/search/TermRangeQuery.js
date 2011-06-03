@@ -75,7 +75,7 @@ TermRangeQuery.prototype.score = function (similarity, index) {
 		if (!err) {
 			try {
 				self._terms = terms;
-				(new MultiTermQuery(self.field, terms, self.boost)).score(similarity, index).pipe(stream);
+				(new MultiTermQuery(self.field, terms, false, self.boost)).score(similarity, index).pipe(stream);
 			} catch (e) {
 				stream.error(e);
 			}

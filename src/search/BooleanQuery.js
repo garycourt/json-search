@@ -147,7 +147,7 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 	clauses.forEach(function (clause) {
 		var collector = new SingleCollector(function onCollection(done, data) {
 			if (!done) {
-				self.match();
+				return self.match();
 			} else if (done === true) {
 				bcs.collector = null;
 				self._collectorCount--;

@@ -1377,7 +1377,7 @@ BooleanScorer.prototype.addInputs = function (clauses) {
 	clauses.forEach(function (clause) {
 		var collector = new SingleCollector(function onCollection(done, data) {
 			if (!done) {
-				self.match();
+				return self.match();
 			} else if (done === true) {
 				bcs.collector = null;
 				self._collectorCount--;
@@ -1796,19 +1796,21 @@ exports.FilterQuery = FilterQuery;
 /**
  * @constructor
  * @implements {Query}
- * @param {string} field
+ * @param {FieldName} field
  * @param {Array.<Term>} terms
+ * @param {boolean} [all]
  * @param {number} [boost]
  */
 
-function MultiTermQuery(field, terms, boost) {
+function MultiTermQuery(field, terms, all, boost) {
 	this.field = field;
 	this.terms = terms;
+	this.all = all || false;
 	this.boost = boost || 1.0;
 };
 
 /**
- * @type {string}
+ * @type {FieldName}
  */
 
 MultiTermQuery.prototype.field;
@@ -1818,6 +1820,12 @@ MultiTermQuery.prototype.field;
  */
 
 MultiTermQuery.prototype.terms;
+
+/**
+ * @type {boolean}
+ */
+
+MultiTermQuery.prototype.all = false;
 
 /**
  * @type {number}
@@ -1857,17 +1865,17 @@ MultiTermQuery.prototype.extractTerms = function () {
  */
 
 MultiTermQuery.prototype.rewrite = function () {
-	var query, terms, x, xl;
+	var query, terms, occur, x, xl;
 	if (this.terms.length === 1) {
 		return new TermQuery(this.field, this.terms[0], this.boost);
 	}
 	//else
 	query = new BooleanQuery();
-	query.minimumOptionalMatches = 1;
 	query.boost = this.boost;
 	terms = this.terms;
+	occur = this.all ? Occur.MUST : Occur.SHOULD;
 	for (x = 0, xl = terms.length; x < xl; ++x) {
-		query.clauses.push(new BooleanClause(new TermQuery(this.field, terms[x]), Occur.SHOULD));
+		query.clauses.push(new BooleanClause(new TermQuery(this.field, terms[x]), occur));
 	}
 	return query;
 };
@@ -2055,7 +2063,17 @@ PhraseQuery.prototype.boost = 1.0;
  */
 
 PhraseQuery.prototype.score = function (similarity, index) {
-	//TODO
+	var stream = new PhraseFilter(this),
+		x, xl, terms = [];
+	
+	for (x = 0, xl = this.terms.length; x < xl; ++x) {
+		if (typeof this.terms[x] !== "undefined") {
+			terms[terms.length] = this.terms[x];
+		}
+	}
+	
+	(new MultiTermQuery(this.field, terms, true, this.boost)).score(similarity, index).pipe(stream);
+	return stream;
 };
 
 /**
@@ -2087,6 +2105,83 @@ PhraseQuery.prototype.rewrite = function () {
 	}
 	//else
 	return this;
+};
+
+
+/**
+ * @protected
+ * @constructor
+ * @extends {Stream}
+ * @param {PhraseQuery} query
+ */
+
+function PhraseFilter(query) {
+	Stream.call(this);
+	this._query = query;
+};
+
+PhraseFilter.prototype = Object.create(Stream.prototype);
+
+/**
+ * @protected
+ * @type {PhraseQuery}
+ */
+
+PhraseFilter.prototype._query;
+
+/**
+ * @param {DocumentTerms} doc
+ */
+
+PhraseFilter.prototype.onWrite = function (doc) {
+	var x, xl, y, yl, z, zl,
+		phrase = this._query.terms,
+		slop = this._query.slop,
+		termVecs = doc.terms, 
+		termPositions = {},
+		positions,
+		minOffset,
+		maxOffset,
+		sibPositions;
+	
+	//create hash of term positions
+	for (x = 0, xl = termVecs.length; x < xl; ++x) {
+		if (!(termPositions[termVecs[x].term] = termVecs[x].termPositions)) {
+			//no term position information available, just fail
+			return;
+		}
+	}
+	
+	//use the first term in the phrase as the offset to compare to
+	positions = termPositions[phrase[0]];
+	
+	//for each position of the first term
+	for (x = 0, xl = positions.length; x < xl; ++x) {
+		//for each other term
+		for (y = 1, yl = phrase.length; y < yl; ++y) {
+			if (typeof phrase[y] !== "undefined") {
+				minOffset = positions[x] + y - slop;
+				maxOffset = positions[x] + y + slop;
+				sibPositions = termPositions[phrase[y]];
+				//for each position of the other term
+				for (z = 0, zl = sibPositions.length; z < zl; ++z) {
+					//if the position of the other term is within the sloppy offset, we have a match
+					if (sibPositions[z] >= minOffset && sibPositions[z] <= maxOffset) {
+						break;
+					}
+				}
+				//if the above loop completed without breaking, the term was not within the offset
+				if (z >= zl) {
+					break;
+				}
+			}
+		}
+		//if the above loop completed without breaking, we found a doc that matches the phrase
+		if (y >= yl) {
+			this.emit(doc);
+			break;
+		}
+	}
 };
 
 
@@ -3835,7 +3930,7 @@ TermRangeQuery.prototype.score = function (similarity, index) {
 		if (!err) {
 			try {
 				self._terms = terms;
-				(new MultiTermQuery(self.field, terms, self.boost)).score(similarity, index).pipe(stream);
+				(new MultiTermQuery(self.field, terms, false, self.boost)).score(similarity, index).pipe(stream);
 			} catch (e) {
 				stream.error(e);
 			}
