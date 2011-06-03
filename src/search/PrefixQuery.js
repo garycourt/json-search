@@ -1,14 +1,14 @@
 /**
  * @constructor
  * @implements {Query}
+ * @param {FieldName} field
  * @param {string} prefix
- * @param {FieldName} [field]
  * @param {number} [boost]
  */
 
-function PrefixQuery(prefix, field, boost) {
-	this.prefix = prefix;
+function PrefixQuery(field, prefix, boost) {
 	this.field = field || null;
+	this.prefix = prefix;
 	this.boost = boost || 1.0;
 };
 
@@ -45,6 +45,8 @@ PrefixQuery.prototype.score = function (similarity, index) {
  */
 
 PrefixQuery.prototype.extractTerms = function () {
+	//since we don't know how many terms have this prefix
+	//return the prefix as a term
 	return [ /** @type {TermVector} */ ({
 		term : this.prefix,
 		field : this.field

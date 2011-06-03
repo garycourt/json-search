@@ -15,13 +15,16 @@ QueryParser.impl = (function(){
         "Boost": parse_Boost,
         "ESCAPED_CHAR": parse_ESCAPED_CHAR,
         "Number": parse_Number,
+        "Phrase": parse_Phrase,
         "Query": parse_Query,
+        "Range": parse_Range,
         "SKIP": parse_SKIP,
         "SubQuery": parse_SubQuery,
         "TERM_CHAR": parse_TERM_CHAR,
         "TERM_START_CHAR": parse_TERM_START_CHAR,
         "Term": parse_Term,
         "TermQuery": parse_TermQuery,
+        "TermType": parse_TermType,
         "WHITESPACE": parse_WHITESPACE
       };
       
@@ -494,6 +497,379 @@ QueryParser.impl = (function(){
         return result0;
       }
       
+      function parse_TermType() {
+        var cacheKey = 'TermType@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var result2 = parse_Term();
+        if (result2 !== null) {
+          if (input.substr(pos, 1) === "*") {
+            var result4 = "*";
+            pos += 1;
+          } else {
+            var result4 = null;
+            if (reportMatchFailures) {
+              matchFailed("\"*\"");
+            }
+          }
+          var result3 = result4 !== null ? result4 : '';
+          if (result3 !== null) {
+            var result1 = [result2, result3];
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos0;
+        }
+        var result0 = result1 !== null
+          ? (function(term, wildcard) {
+            if (wildcard) {
+              return {prefix : term};
+            } else {
+              return {term : term};
+            }
+          })(result1[0], result1[1])
+          : null;
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_Range() {
+        var cacheKey = 'Range@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        if (input.substr(pos, 1) === "[") {
+          var result17 = "[";
+          pos += 1;
+        } else {
+          var result17 = null;
+          if (reportMatchFailures) {
+            matchFailed("\"[\"");
+          }
+        }
+        if (result17 !== null) {
+          var result2 = result17;
+        } else {
+          if (input.substr(pos, 1) === "{") {
+            var result16 = "{";
+            pos += 1;
+          } else {
+            var result16 = null;
+            if (reportMatchFailures) {
+              matchFailed("\"{\"");
+            }
+          }
+          if (result16 !== null) {
+            var result2 = result16;
+          } else {
+            var result2 = null;;
+          };
+        }
+        if (result2 !== null) {
+          var result3 = parse_SKIP();
+          if (result3 !== null) {
+            var result4 = parse_Term();
+            if (result4 !== null) {
+              var result5 = parse_SKIP();
+              if (result5 !== null) {
+                if (input.substr(pos, 2) === "TO") {
+                  var result15 = "TO";
+                  pos += 2;
+                } else {
+                  var result15 = null;
+                  if (reportMatchFailures) {
+                    matchFailed("\"TO\"");
+                  }
+                }
+                if (result15 !== null) {
+                  var result13 = result15;
+                } else {
+                  if (input.substr(pos, 1) === "-") {
+                    var result14 = "-";
+                    pos += 1;
+                  } else {
+                    var result14 = null;
+                    if (reportMatchFailures) {
+                      matchFailed("\"-\"");
+                    }
+                  }
+                  if (result14 !== null) {
+                    var result13 = result14;
+                  } else {
+                    var result13 = null;;
+                  };
+                }
+                var result6 = result13 !== null ? result13 : '';
+                if (result6 !== null) {
+                  var result7 = parse_SKIP();
+                  if (result7 !== null) {
+                    var result8 = parse_Term();
+                    if (result8 !== null) {
+                      var result9 = parse_SKIP();
+                      if (result9 !== null) {
+                        if (input.substr(pos, 1) === "]") {
+                          var result12 = "]";
+                          pos += 1;
+                        } else {
+                          var result12 = null;
+                          if (reportMatchFailures) {
+                            matchFailed("\"]\"");
+                          }
+                        }
+                        if (result12 !== null) {
+                          var result10 = result12;
+                        } else {
+                          if (input.substr(pos, 1) === "}") {
+                            var result11 = "}";
+                            pos += 1;
+                          } else {
+                            var result11 = null;
+                            if (reportMatchFailures) {
+                              matchFailed("\"}\"");
+                            }
+                          }
+                          if (result11 !== null) {
+                            var result10 = result11;
+                          } else {
+                            var result10 = null;;
+                          };
+                        }
+                        if (result10 !== null) {
+                          var result1 = [result2, result3, result4, result5, result6, result7, result8, result9, result10];
+                        } else {
+                          var result1 = null;
+                          pos = savedPos0;
+                        }
+                      } else {
+                        var result1 = null;
+                        pos = savedPos0;
+                      }
+                    } else {
+                      var result1 = null;
+                      pos = savedPos0;
+                    }
+                  } else {
+                    var result1 = null;
+                    pos = savedPos0;
+                  }
+                } else {
+                  var result1 = null;
+                  pos = savedPos0;
+                }
+              } else {
+                var result1 = null;
+                pos = savedPos0;
+              }
+            } else {
+              var result1 = null;
+              pos = savedPos0;
+            }
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos0;
+        }
+        var result0 = result1 !== null
+          ? (function(startRange, startTerm, endTerm, endRange) {
+            var excludeStart = (startRange === "{");
+            var excludeEnd = (endRange === "}");
+            return {startTerm:startTerm, endTerm:endTerm, excludeStart:excludeStart, excludeEnd:excludeEnd};
+          })(result1[0], result1[2], result1[6], result1[8])
+          : null;
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_Phrase() {
+        var cacheKey = 'Phrase@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        if (input.substr(pos, 1) === "\"") {
+          var result2 = "\"";
+          pos += 1;
+        } else {
+          var result2 = null;
+          if (reportMatchFailures) {
+            matchFailed("\"\\\"\"");
+          }
+        }
+        if (result2 !== null) {
+          var result3 = parse_SKIP();
+          if (result3 !== null) {
+            var result4 = parse_Term();
+            if (result4 !== null) {
+              var result5 = [];
+              var savedPos2 = pos;
+              var result15 = parse_WHITESPACE();
+              if (result15 !== null) {
+                var result13 = [];
+                while (result15 !== null) {
+                  result13.push(result15);
+                  var result15 = parse_WHITESPACE();
+                }
+              } else {
+                var result13 = null;
+              }
+              if (result13 !== null) {
+                var result14 = parse_Term();
+                if (result14 !== null) {
+                  var result12 = [result13, result14];
+                } else {
+                  var result12 = null;
+                  pos = savedPos2;
+                }
+              } else {
+                var result12 = null;
+                pos = savedPos2;
+              }
+              while (result12 !== null) {
+                result5.push(result12);
+                var savedPos2 = pos;
+                var result15 = parse_WHITESPACE();
+                if (result15 !== null) {
+                  var result13 = [];
+                  while (result15 !== null) {
+                    result13.push(result15);
+                    var result15 = parse_WHITESPACE();
+                  }
+                } else {
+                  var result13 = null;
+                }
+                if (result13 !== null) {
+                  var result14 = parse_Term();
+                  if (result14 !== null) {
+                    var result12 = [result13, result14];
+                  } else {
+                    var result12 = null;
+                    pos = savedPos2;
+                  }
+                } else {
+                  var result12 = null;
+                  pos = savedPos2;
+                }
+              }
+              if (result5 !== null) {
+                var result6 = parse_SKIP();
+                if (result6 !== null) {
+                  if (input.substr(pos, 1) === "\"") {
+                    var result7 = "\"";
+                    pos += 1;
+                  } else {
+                    var result7 = null;
+                    if (reportMatchFailures) {
+                      matchFailed("\"\\\"\"");
+                    }
+                  }
+                  if (result7 !== null) {
+                    var savedPos1 = pos;
+                    if (input.substr(pos, 1) === "~") {
+                      var result10 = "~";
+                      pos += 1;
+                    } else {
+                      var result10 = null;
+                      if (reportMatchFailures) {
+                        matchFailed("\"~\"");
+                      }
+                    }
+                    if (result10 !== null) {
+                      var result11 = parse_Number();
+                      if (result11 !== null) {
+                        var result9 = [result10, result11];
+                      } else {
+                        var result9 = null;
+                        pos = savedPos1;
+                      }
+                    } else {
+                      var result9 = null;
+                      pos = savedPos1;
+                    }
+                    var result8 = result9 !== null ? result9 : '';
+                    if (result8 !== null) {
+                      var result1 = [result2, result3, result4, result5, result6, result7, result8];
+                    } else {
+                      var result1 = null;
+                      pos = savedPos0;
+                    }
+                  } else {
+                    var result1 = null;
+                    pos = savedPos0;
+                  }
+                } else {
+                  var result1 = null;
+                  pos = savedPos0;
+                }
+              } else {
+                var result1 = null;
+                pos = savedPos0;
+              }
+            } else {
+              var result1 = null;
+              pos = savedPos0;
+            }
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos0;
+        }
+        var result0 = result1 !== null
+          ? (function(startTerm, otherTerms, slop) {
+            var phrase = [ startTerm ];
+            if (otherTerms) {
+              for (var x = 0, xl = otherTerms.length; x < xl; ++x) {
+                phrase.push(otherTerms[x][1]);
+              }
+            }
+            return {phrase:phrase, slop:(slop ? slop[1] : 0)};
+          })(result1[2], result1[3], result1[6])
+          : null;
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
       function parse_TermQuery() {
         var cacheKey = 'TermQuery@' + pos;
         var cachedResult = cache[cacheKey];
@@ -505,30 +881,45 @@ QueryParser.impl = (function(){
         
         var savedPos0 = pos;
         var savedPos1 = pos;
-        var result6 = parse_Term();
-        if (result6 !== null) {
+        var result9 = parse_Term();
+        if (result9 !== null) {
           if (input.substr(pos, 1) === ":") {
-            var result7 = ":";
+            var result10 = ":";
             pos += 1;
           } else {
-            var result7 = null;
+            var result10 = null;
             if (reportMatchFailures) {
               matchFailed("\":\"");
             }
           }
-          if (result7 !== null) {
-            var result5 = [result6, result7];
+          if (result10 !== null) {
+            var result8 = [result9, result10];
           } else {
-            var result5 = null;
+            var result8 = null;
             pos = savedPos1;
           }
         } else {
-          var result5 = null;
+          var result8 = null;
           pos = savedPos1;
         }
-        var result2 = result5 !== null ? result5 : '';
+        var result2 = result8 !== null ? result8 : '';
         if (result2 !== null) {
-          var result3 = parse_Term();
+          var result7 = parse_Phrase();
+          if (result7 !== null) {
+            var result3 = result7;
+          } else {
+            var result6 = parse_Range();
+            if (result6 !== null) {
+              var result3 = result6;
+            } else {
+              var result5 = parse_TermType();
+              if (result5 !== null) {
+                var result3 = result5;
+              } else {
+                var result3 = null;;
+              };
+            };
+          }
           if (result3 !== null) {
             var result4 = parse_Boost();
             if (result4 !== null) {
@@ -547,7 +938,17 @@ QueryParser.impl = (function(){
         }
         var result0 = result1 !== null
           ? (function(field, term, boost) {
-            return new TermQuery(field ? field[0] : defaultField, term, boost);
+            field = field ? field[0] : defaultField;
+            
+            if (term.phrase) {
+              return new PhraseQuery(field, term.phrase, term.slop, boost);
+            } else if (term.startTerm) {
+              return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
+            } else if (term.prefix) {
+              return new PrefixQuery(field, term.prefix, boost);
+            } else {
+              return new TermQuery(field, term.term, boost);
+            }
           })(result1[0], result1[1], result1[2])
           : null;
         
@@ -657,7 +1058,16 @@ QueryParser.impl = (function(){
         if (result2 !== null) {
           var result3 = [];
           var savedPos1 = pos;
-          var result5 = parse_SKIP();
+          var result7 = parse_WHITESPACE();
+          if (result7 !== null) {
+            var result5 = [];
+            while (result7 !== null) {
+              result5.push(result7);
+              var result7 = parse_WHITESPACE();
+            }
+          } else {
+            var result5 = null;
+          }
           if (result5 !== null) {
             var result6 = parse_BooleanClause();
             if (result6 !== null) {
@@ -673,7 +1083,16 @@ QueryParser.impl = (function(){
           while (result4 !== null) {
             result3.push(result4);
             var savedPos1 = pos;
-            var result5 = parse_SKIP();
+            var result7 = parse_WHITESPACE();
+            if (result7 !== null) {
+              var result5 = [];
+              while (result7 !== null) {
+                result5.push(result7);
+                var result7 = parse_WHITESPACE();
+              }
+            } else {
+              var result5 = null;
+            }
             if (result5 !== null) {
               var result6 = parse_BooleanClause();
               if (result6 !== null) {
