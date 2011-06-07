@@ -4,7 +4,7 @@ var spawn = require('child_process').spawn;
 var peg = require('./lib/node-pegjs');
 
 var srcDir = './src/';
-var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'index/', srcDir + 'search/'];
+var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'index/', srcDir + 'search/', srcDir + 'parser/'];
 var codeOutput = 'json-search.js';
 var interfaceDirs = [srcDir + 'interface/'];
 var interfaceOutput = 'externs.js';
@@ -23,13 +23,13 @@ task({'default' : ['compile', 'compress']}, function () {});
 
 desc('Compiles the QueryParser class.');
 task('compileQueryParser', function () {
-	fs.readFile(srcDir + 'search/QueryParserImpl.pegjs', 'utf8', function (err, data) {
+	fs.readFile(srcDir + 'parser/QueryParserImpl.pegjs', 'utf8', function (err, data) {
 		if (err) {
 			return fail(err);
 		}
 		
 		var parser = peg.buildParser(data);
-		fs.writeFile(srcDir + 'search/QueryParserImpl.js', 'QueryParser.impl = ' + parser.toSource(), 'utf8', function (err) {
+		fs.writeFile(srcDir + 'parser/QueryParserImpl.js', 'QueryParser.impl = ' + parser.toSource(), 'utf8', function (err) {
 			if (err) {
 				fail(err);
 			} else {

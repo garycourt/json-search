@@ -2258,6 +2258,394 @@ exports.PrefixQuery = PrefixQuery;
 
 /**
  * @constructor
+ * @param {Index} index
+ */
+
+function Searcher(index) {
+	this._index = index;
+};
+
+/**
+ * @protected
+ * @type {Index}
+ */
+
+Searcher.prototype._index;
+
+/**
+ * @type {Similarity}
+ */
+
+Searcher.prototype.similarity = new DefaultSimilarity();
+
+/**
+ * @param {Query} query
+ * @param {number} max
+ * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
+ */
+
+Searcher.prototype.search = function (query, max, callback) {
+	var collector, normQuery;
+	collector = new TopDocumentsCollector(max, callback);
+	normQuery = new NormalizedQuery(query);
+	normQuery.score(this.similarity, this._index).pipe(collector);
+};
+
+
+exports.Searcher = Searcher;
+
+/**
+ * @constructor
+ * @implements {Query}
+ * @param {FieldName} field
+ * @param {Term} term
+ * @param {number} [boost]
+ */
+
+function TermQuery(field, term, boost) {
+	this.field = field || null;
+	this.term = term;
+	this.boost = boost || 1.0;
+};
+
+/**
+ * @type {FieldName}
+ */
+
+TermQuery.prototype.field = null;
+
+/**
+ * @type {Term}
+ */
+
+TermQuery.prototype.term;
+
+/**
+ * @type {number}
+ */
+
+TermQuery.prototype.boost = 1.0;
+
+/**
+ * @param {Similarity} similarity
+ * @param {Index} index
+ * @return {Stream}
+ */
+
+TermQuery.prototype.score = function (similarity, index) {
+	var scorer = new TermScorer(this, similarity);
+	index.getTermVectors(this.field, this.term).pipe(scorer);
+	return scorer;
+};
+
+/**
+ * @return {Array.<TermVector>}
+ */
+
+TermQuery.prototype.extractTerms = function () {
+	return [ /** @type {TermVector} */ ({
+		term : this.term,
+		field : this.field
+	})];
+};
+
+/**
+ * @return {Query}
+ */
+
+TermQuery.prototype.rewrite = function () {
+	return this;  //can not be optimized
+};
+
+
+/**
+ * @protected
+ * @constructor
+ * @extends {Stream}
+ * @param {Query} query
+ * @param {Similarity} similarity
+ */
+
+function TermScorer(query, similarity) {
+	Stream.call(this);
+	this._boost = query.boost;
+	this._similarity = similarity;
+}
+
+TermScorer.prototype = Object.create(Stream.prototype);
+
+/**
+ * @protected
+ * @type {number}
+ */
+
+TermScorer.prototype._boost;
+
+/**
+ * @protected
+ * @type {Similarity}
+ */
+
+TermScorer.prototype._similarity;
+
+/**
+ * @param {TermVector} termVec
+ */
+
+TermScorer.prototype.onWrite = function (termVec) {
+	var similarity = this._similarity,
+		doc = new DocumentTerms(termVec.documentID, [termVec]),
+		idf = similarity.idf(termVec);
+	
+	//compute sumOfSquaredWeights
+	doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
+	
+	//compute score
+	doc.score = similarity.tf(termVec) * 
+		idf * idf *
+		this._boost * 
+		similarity.norm(termVec);
+	
+	this.emit(doc);
+};
+
+/**
+ * @param {Array.<TermVector>} termVecs
+ */
+
+TermScorer.prototype.onBulkWrite = function (termVecs) {
+	var similarity = this._similarity,
+		termVec, doc, idf,
+		docs = new Array(termVecs.length);
+	
+	for (x = 0, xl = termVecs.length; x < xl; ++x) {
+		termVec = termVecs[x];
+		doc = new DocumentTerms(termVec.documentID, [termVec]);
+		idf = similarity.idf(termVec);
+		
+		//compute sumOfSquaredWeights
+		doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
+		
+		//compute score
+		doc.score = similarity.tf(termVec) * 
+			idf * idf *
+			this._boost * 
+			similarity.norm(termVec);
+		
+		docs[x] = doc;
+	}
+	
+	this.emitBulk(docs);
+};
+
+
+exports.TermQuery = TermQuery;
+
+/**
+ * @constructor
+ * @implements {Query}
+ * @param {FieldName} field
+ * @param {Term} startTerm
+ * @param {Term} endTerm
+ * @param {boolean} [excludeStart]
+ * @param {boolean} [excludeEnd]
+ * @param {number} [boost]
+ */
+
+function TermRangeQuery(field, startTerm, endTerm, excludeStart, excludeEnd, boost) {
+	this.field = field || null;
+	this.startTerm = startTerm;
+	this.endTerm = endTerm;
+	this.excludeStart = excludeStart || false;
+	this.excludeEnd = excludeEnd || false;
+	this.boost = boost || 1.0;
+};
+
+/**
+ * @type {FieldName}
+ */
+
+TermRangeQuery.prototype.field = null;
+
+/**
+ * @type {Term}
+ */
+
+TermRangeQuery.prototype.startTerm;
+
+/**
+ * @type {Term}
+ */
+
+TermRangeQuery.prototype.endTerm;
+
+/**
+ * @type {boolean}
+ */
+
+TermRangeQuery.prototype.excludeStart = false;
+
+/**
+ * @type {boolean}
+ */
+
+TermRangeQuery.prototype.excludeEnd = false;
+
+/**
+ * @type {number}
+ */
+
+TermRangeQuery.prototype.boost = 1.0;
+
+/**
+ * @private
+ * @type {Array.<Term>|null}
+ */
+ 
+TermRangeQuery.prototype._terms = null;
+
+/**
+ * @param {Similarity} similarity
+ * @param {Index} index
+ * @return {Stream}
+ */
+
+TermRangeQuery.prototype.score = function (similarity, index) {
+	var self = this,
+		stream = new Stream();
+	
+	index.getTermRange(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd, function (err, terms) {
+		if (!err) {
+			try {
+				self._terms = terms;
+				(new MultiTermQuery(self.field, terms, false, self.boost)).score(similarity, index).pipe(stream);
+			} catch (e) {
+				stream.error(e);
+			}
+		} else {
+			stream.error(err);
+		}
+	});
+	
+	return stream;
+};
+
+/**
+ * @return {Array.<TermVector>}
+ */
+
+TermRangeQuery.prototype.extractTerms = function () {
+	var terms, result, x, xl;
+	if (this._terms) {
+		terms = this._terms;
+		result = new Array(terms.length);
+		for (x = 0, xl = terms.length; x < xl; ++x) {
+			result[x] = /** @type {TermVector} */ ({
+				term : terms[x],
+				field : this.field
+			});
+		}
+		return result;
+	} else {
+		//we don't know how many terms this range encompasses
+		//the best we can do is return at least one term
+		return [ /** @type {TermVector} */ ({
+			term : this.startTerm,
+			field : this.field
+		})];
+	}
+};
+
+/**
+ * @return {Query}
+ */
+
+TermRangeQuery.prototype.rewrite = function () {
+	return this;  //can not be optimized
+};
+
+
+exports.TermRangeQuery = TermRangeQuery;
+
+/**
+ * @constructor
+ * @extends {Collector}
+ * @param {number} max
+ * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
+ */
+
+function TopDocumentsCollector(max, callback) {
+	Collector.call(this, callback);
+	this.max = max || 1;
+};
+
+/**
+ * @param {DocumentTerms} a
+ * @param {DocumentTerms} b
+ * @return {number}
+ */
+
+TopDocumentsCollector.compareScores = function (a, b) {
+	return b.score - a.score;
+};
+
+TopDocumentsCollector.prototype = Object.create(Collector.prototype);
+
+/**
+ * @type {Array.<DocumentTerms>}
+ * @override
+ */
+
+TopDocumentsCollector.prototype.collection;
+
+/**
+ * @type {number}
+ */
+
+TopDocumentsCollector.prototype.max;
+
+/**
+ * @type {number}
+ */
+
+TopDocumentsCollector.prototype.lowestScore = 0;
+
+/**
+ * @param {DocumentTerms} doc
+ */
+
+TopDocumentsCollector.prototype.onWrite = function (doc) {
+	if (this.collection.length < this.max || doc.score > this.lowestScore) {
+		if (this.collection.length >= this.max) {
+			this.collection.pop();  //remove lowest scored document
+		}
+		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
+		this.lowestScore = this.collection[this.collection.length - 1].score;
+	}
+};
+
+/**
+ * @param {Array.<DocumentTerms>} docs
+ */
+
+TopDocumentsCollector.prototype.onBulkWrite = function (docs) {
+	var x, xl;
+	for (x = 0, xl = docs.length; x < xl; ++x) {
+		if (this.collection.length < this.max || docs[x].score > this.lowestScore) {
+			if (this.collection.length >= this.max) {
+				this.collection.pop();  //remove lowest scored document
+			}
+			Array.orderedInsert(this.collection, docs[x], TopDocumentsCollector.compareScores);
+			this.lowestScore = this.collection[this.collection.length - 1].score;
+		}
+	}
+};
+
+
+exports.TopDocumentsCollector = TopDocumentsCollector;
+
+/**
+ * @constructor
  */
 
 function QueryParser() {}
@@ -3667,391 +4055,3 @@ QueryParser.impl = (function(){
   
   return result;
 })()
-
-/**
- * @constructor
- * @param {Index} index
- */
-
-function Searcher(index) {
-	this._index = index;
-};
-
-/**
- * @protected
- * @type {Index}
- */
-
-Searcher.prototype._index;
-
-/**
- * @type {Similarity}
- */
-
-Searcher.prototype.similarity = new DefaultSimilarity();
-
-/**
- * @param {Query} query
- * @param {number} max
- * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
- */
-
-Searcher.prototype.search = function (query, max, callback) {
-	var collector, normQuery;
-	collector = new TopDocumentsCollector(max, callback);
-	normQuery = new NormalizedQuery(query);
-	normQuery.score(this.similarity, this._index).pipe(collector);
-};
-
-
-exports.Searcher = Searcher;
-
-/**
- * @constructor
- * @implements {Query}
- * @param {FieldName} field
- * @param {Term} term
- * @param {number} [boost]
- */
-
-function TermQuery(field, term, boost) {
-	this.field = field || null;
-	this.term = term;
-	this.boost = boost || 1.0;
-};
-
-/**
- * @type {FieldName}
- */
-
-TermQuery.prototype.field = null;
-
-/**
- * @type {Term}
- */
-
-TermQuery.prototype.term;
-
-/**
- * @type {number}
- */
-
-TermQuery.prototype.boost = 1.0;
-
-/**
- * @param {Similarity} similarity
- * @param {Index} index
- * @return {Stream}
- */
-
-TermQuery.prototype.score = function (similarity, index) {
-	var scorer = new TermScorer(this, similarity);
-	index.getTermVectors(this.field, this.term).pipe(scorer);
-	return scorer;
-};
-
-/**
- * @return {Array.<TermVector>}
- */
-
-TermQuery.prototype.extractTerms = function () {
-	return [ /** @type {TermVector} */ ({
-		term : this.term,
-		field : this.field
-	})];
-};
-
-/**
- * @return {Query}
- */
-
-TermQuery.prototype.rewrite = function () {
-	return this;  //can not be optimized
-};
-
-
-/**
- * @protected
- * @constructor
- * @extends {Stream}
- * @param {Query} query
- * @param {Similarity} similarity
- */
-
-function TermScorer(query, similarity) {
-	Stream.call(this);
-	this._boost = query.boost;
-	this._similarity = similarity;
-}
-
-TermScorer.prototype = Object.create(Stream.prototype);
-
-/**
- * @protected
- * @type {number}
- */
-
-TermScorer.prototype._boost;
-
-/**
- * @protected
- * @type {Similarity}
- */
-
-TermScorer.prototype._similarity;
-
-/**
- * @param {TermVector} termVec
- */
-
-TermScorer.prototype.onWrite = function (termVec) {
-	var similarity = this._similarity,
-		doc = new DocumentTerms(termVec.documentID, [termVec]),
-		idf = similarity.idf(termVec);
-	
-	//compute sumOfSquaredWeights
-	doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
-	
-	//compute score
-	doc.score = similarity.tf(termVec) * 
-		idf * idf *
-		this._boost * 
-		similarity.norm(termVec);
-	
-	this.emit(doc);
-};
-
-/**
- * @param {Array.<TermVector>} termVecs
- */
-
-TermScorer.prototype.onBulkWrite = function (termVecs) {
-	var similarity = this._similarity,
-		termVec, doc, idf,
-		docs = new Array(termVecs.length);
-	
-	for (x = 0, xl = termVecs.length; x < xl; ++x) {
-		termVec = termVecs[x];
-		doc = new DocumentTerms(termVec.documentID, [termVec]);
-		idf = similarity.idf(termVec);
-		
-		//compute sumOfSquaredWeights
-		doc.sumOfSquaredWeights = (idf * this._boost) * (idf * this._boost);
-		
-		//compute score
-		doc.score = similarity.tf(termVec) * 
-			idf * idf *
-			this._boost * 
-			similarity.norm(termVec);
-		
-		docs[x] = doc;
-	}
-	
-	this.emitBulk(docs);
-};
-
-
-exports.TermQuery = TermQuery;
-
-/**
- * @constructor
- * @implements {Query}
- * @param {FieldName} field
- * @param {Term} startTerm
- * @param {Term} endTerm
- * @param {boolean} [excludeStart]
- * @param {boolean} [excludeEnd]
- * @param {number} [boost]
- */
-
-function TermRangeQuery(field, startTerm, endTerm, excludeStart, excludeEnd, boost) {
-	this.field = field || null;
-	this.startTerm = startTerm;
-	this.endTerm = endTerm;
-	this.excludeStart = excludeStart || false;
-	this.excludeEnd = excludeEnd || false;
-	this.boost = boost || 1.0;
-};
-
-/**
- * @type {FieldName}
- */
-
-TermRangeQuery.prototype.field = null;
-
-/**
- * @type {Term}
- */
-
-TermRangeQuery.prototype.startTerm;
-
-/**
- * @type {Term}
- */
-
-TermRangeQuery.prototype.endTerm;
-
-/**
- * @type {boolean}
- */
-
-TermRangeQuery.prototype.excludeStart = false;
-
-/**
- * @type {boolean}
- */
-
-TermRangeQuery.prototype.excludeEnd = false;
-
-/**
- * @type {number}
- */
-
-TermRangeQuery.prototype.boost = 1.0;
-
-/**
- * @private
- * @type {Array.<Term>|null}
- */
- 
-TermRangeQuery.prototype._terms = null;
-
-/**
- * @param {Similarity} similarity
- * @param {Index} index
- * @return {Stream}
- */
-
-TermRangeQuery.prototype.score = function (similarity, index) {
-	var self = this,
-		stream = new Stream();
-	
-	index.getTermRange(this.field, this.startTerm, this.endTerm, this.excludeStart, this.excludeEnd, function (err, terms) {
-		if (!err) {
-			try {
-				self._terms = terms;
-				(new MultiTermQuery(self.field, terms, false, self.boost)).score(similarity, index).pipe(stream);
-			} catch (e) {
-				stream.error(e);
-			}
-		} else {
-			stream.error(err);
-		}
-	});
-	
-	return stream;
-};
-
-/**
- * @return {Array.<TermVector>}
- */
-
-TermRangeQuery.prototype.extractTerms = function () {
-	var terms, result, x, xl;
-	if (this._terms) {
-		terms = this._terms;
-		result = new Array(terms.length);
-		for (x = 0, xl = terms.length; x < xl; ++x) {
-			result[x] = /** @type {TermVector} */ ({
-				term : terms[x],
-				field : this.field
-			});
-		}
-		return result;
-	} else {
-		//we don't know how many terms this range encompasses
-		//the best we can do is return at least one term
-		return [ /** @type {TermVector} */ ({
-			term : this.startTerm,
-			field : this.field
-		})];
-	}
-};
-
-/**
- * @return {Query}
- */
-
-TermRangeQuery.prototype.rewrite = function () {
-	return this;  //can not be optimized
-};
-
-
-exports.TermRangeQuery = TermRangeQuery;
-
-/**
- * @constructor
- * @extends {Collector}
- * @param {number} max
- * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
- */
-
-function TopDocumentsCollector(max, callback) {
-	Collector.call(this, callback);
-	this.max = max || 1;
-};
-
-/**
- * @param {DocumentTerms} a
- * @param {DocumentTerms} b
- * @return {number}
- */
-
-TopDocumentsCollector.compareScores = function (a, b) {
-	return b.score - a.score;
-};
-
-TopDocumentsCollector.prototype = Object.create(Collector.prototype);
-
-/**
- * @type {Array.<DocumentTerms>}
- * @override
- */
-
-TopDocumentsCollector.prototype.collection;
-
-/**
- * @type {number}
- */
-
-TopDocumentsCollector.prototype.max;
-
-/**
- * @type {number}
- */
-
-TopDocumentsCollector.prototype.lowestScore = 0;
-
-/**
- * @param {DocumentTerms} doc
- */
-
-TopDocumentsCollector.prototype.onWrite = function (doc) {
-	if (this.collection.length < this.max || doc.score > this.lowestScore) {
-		if (this.collection.length >= this.max) {
-			this.collection.pop();  //remove lowest scored document
-		}
-		Array.orderedInsert(this.collection, doc, TopDocumentsCollector.compareScores);
-		this.lowestScore = this.collection[this.collection.length - 1].score;
-	}
-};
-
-/**
- * @param {Array.<DocumentTerms>} docs
- */
-
-TopDocumentsCollector.prototype.onBulkWrite = function (docs) {
-	var x, xl;
-	for (x = 0, xl = docs.length; x < xl; ++x) {
-		if (this.collection.length < this.max || docs[x].score > this.lowestScore) {
-			if (this.collection.length >= this.max) {
-				this.collection.pop();  //remove lowest scored document
-			}
-			Array.orderedInsert(this.collection, docs[x], TopDocumentsCollector.compareScores);
-			this.lowestScore = this.collection[this.collection.length - 1].score;
-		}
-	}
-};
-
-
-exports.TopDocumentsCollector = TopDocumentsCollector;
