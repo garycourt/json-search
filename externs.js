@@ -7,6 +7,7 @@ function Analyzer() {};
 /**
  * @param {FieldName} field
  * @param {string} value
+ * @return {Array.<Token>}
  */
 
 Analyzer.prototype.tokenize = function (field, value) {};
@@ -241,6 +242,42 @@ TermVector.prototype.documentFrequency;
  */
 
 TermVector.prototype.totalDocuments;
+
+/**
+ * @constructor
+ */
+
+function Token() {};
+
+/**
+ * @type {string}
+ */
+
+Token.prototype.type;
+
+/**
+ * @type {string|undefined}
+ */
+
+Token.prototype.value;
+
+/**
+ * @type {number}
+ */
+
+Token.prototype.startOffset;
+
+/**
+ * @type {number}
+ */
+
+Token.prototype.endOffset;
+
+/**
+ * @type {number}
+ */
+
+Token.prototype.positionIncrement;
 
 /**
  * @typedef {(Error|string|number|boolean|null|undefined)}
