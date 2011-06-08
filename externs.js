@@ -1,5 +1,5 @@
 /**
- * @constructor
+ * @interface
  */
 
 function Analyzer() {};
