@@ -28,11 +28,11 @@ Index.prototype.addDocument = function (doc, id, callback) {};
 Index.prototype.getDocument = function (id, callback) {};
 
 /**
- * @param {TermIndexer} indexer
+ * @param {Indexer} indexer
  * @param {function(PossibleError)} [callback]
  */
 
-Index.prototype.setTermIndexer = function (indexer, callback) {};
+Index.prototype.setIndexer = function (indexer, callback) {};
 
 /**
  * @param {FieldName} field

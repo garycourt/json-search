@@ -2,7 +2,7 @@
  * @interface
  */
 
-function TermIndexer() {};
+function Indexer() {};
 
 /**
  * @param {Object} doc
@@ -10,10 +10,10 @@ function TermIndexer() {};
  * @return {Array.<TermVector>}
  */
 
-TermIndexer.prototype.index = function (doc, id) {};
+Indexer.prototype.index = function (doc, id) {};
 
 /**
  * @return {string}
  */
 
-TermIndexer.prototype.toSource = function () {};
+Indexer.prototype.toSource = function () {};

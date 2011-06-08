@@ -71,10 +71,10 @@ MemoryIndex.prototype._indexKeys;
 
 /**
  * @protected
- * @type {TermIndexer}
+ * @type {Indexer}
  */
 
-MemoryIndex.prototype._termIndexer = new DefaultTermIndexer();
+MemoryIndex.prototype._indexer = new DefaultIndexer();
 
 /**
  * @return {DocumentID}
@@ -92,7 +92,7 @@ MemoryIndex.prototype.generateID = function () {
 
 MemoryIndex.prototype.indexDocument = function (doc, id, callback) {
 	var entry, i, il, key;
-	entry = this._termIndexer.index(doc, id);
+	entry = this._indexer.index(doc, id);
 	
 	for (i = 0, il = entry.length; i < il; ++i) {
 		key = JSON.stringify([entry[i].field, entry[i].term]);
@@ -138,13 +138,13 @@ MemoryIndex.prototype.getDocument = function (id, callback) {
 };
 
 /**
- * @param {TermIndexer} indexer
+ * @param {Indexer} indexer
  * @param {function(PossibleError)} [callback]
  */
 
-MemoryIndex.prototype.setTermIndexer = function (indexer, callback) {
+MemoryIndex.prototype.setIndexer = function (indexer, callback) {
 	var docs = this._docs, id;
-	this._termIndexer = indexer;
+	this._indexer = indexer;
 	
 	//reindex all documents
 	this._index = {};

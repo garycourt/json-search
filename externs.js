@@ -1,4 +1,18 @@
 /**
+ * @constructor
+ */
+
+function Analyzer() {};
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ */
+
+Analyzer.prototype.tokenize = function (field, value) {};
+
+
+/**
  * @interface
  */
 
@@ -28,11 +42,11 @@ Index.prototype.addDocument = function (doc, id, callback) {};
 Index.prototype.getDocument = function (id, callback) {};
 
 /**
- * @param {TermIndexer} indexer
+ * @param {Indexer} indexer
  * @param {function(PossibleError)} [callback]
  */
 
-Index.prototype.setTermIndexer = function (indexer, callback) {};
+Index.prototype.setIndexer = function (indexer, callback) {};
 
 /**
  * @param {FieldName} field
@@ -54,6 +68,26 @@ Index.prototype.getTermVectors = function (field, term) {};
 Index.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart, excludeEnd, callback) {
 	
 };
+
+/**
+ * @interface
+ */
+
+function Indexer() {};
+
+/**
+ * @param {Object} doc
+ * @param {DocumentID} id
+ * @return {Array.<TermVector>}
+ */
+
+Indexer.prototype.index = function (doc, id) {};
+
+/**
+ * @return {string}
+ */
+
+Indexer.prototype.toSource = function () {};
 
 /**
  * @interface
@@ -135,26 +169,6 @@ Similarity.prototype.idf = function (termVec) {};
  */
 
 Similarity.prototype.coord = function (overlap, maxOverlap) {};
-
-/**
- * @interface
- */
-
-function TermIndexer() {};
-
-/**
- * @param {Object} doc
- * @param {DocumentID} id
- * @return {Array.<TermVector>}
- */
-
-TermIndexer.prototype.index = function (doc, id) {};
-
-/**
- * @return {string}
- */
-
-TermIndexer.prototype.toSource = function () {};
 
 /**
  * @interface

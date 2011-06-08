@@ -1,9 +1,9 @@
 /**
  * @constructor
- * @implements {TermIndexer}
+ * @implements {Indexer}
  */
 
-function DefaultTermIndexer() {};
+function DefaultIndexer() {};
 
 /**
  * @param {Object} doc
@@ -11,7 +11,7 @@ function DefaultTermIndexer() {};
  * @return {Array.<TermVector>}
  */
 
-DefaultTermIndexer.prototype.index = function (doc, id, field) {
+DefaultIndexer.prototype.index = function (doc, id, field) {
 	var terms,
 		entries,
 		key,
@@ -81,9 +81,9 @@ DefaultTermIndexer.prototype.index = function (doc, id, field) {
  * @return {string}
  */
 
-DefaultTermIndexer.prototype.toSource = function () {
+DefaultIndexer.prototype.toSource = function () {
 	//TODO
 };
 
 
-exports.DefaultTermIndexer = DefaultTermIndexer;
+exports.DefaultIndexer = DefaultIndexer;
