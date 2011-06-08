@@ -3,7 +3,7 @@
  * @implements {Analyzer}
  */
 
-function KeywordTokenizer() {};
+function IDTokenizer() {};
 
 /**
  * @param {FieldName} field
@@ -11,7 +11,7 @@ function KeywordTokenizer() {};
  * @return {Array.<Token>}
  */
 
-KeywordTokenizer.prototype.tokenize = function (field, value) {
+IDTokenizer.prototype.tokenize = function (field, value) {
 	return [ /** @type {Token} */ ({
 		type : "word",
 		value : value,
@@ -22,4 +22,4 @@ KeywordTokenizer.prototype.tokenize = function (field, value) {
 };
 
 
-exports.KeywordTokenizer = KeywordTokenizer;
+exports.IDTokenizer = IDTokenizer;

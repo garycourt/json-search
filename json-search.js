@@ -870,6 +870,73 @@ exports.SingleCollector = SingleCollector;
 /**
  * @constructor
  * @implements {Analyzer}
+ * @param {Analyzer} analyzer
+ * @param {function(Token): boolean} [filterer]
+ * @param {function(Token): Token} [mapper]
+ */
+
+function BaseFilter(analyzer, filterer, mapper) {
+	this.analyzer = analyzer;
+	this.filterer = filterer;
+	this.mapper = mapper;
+};
+
+/**
+ * @type {Analyzer}
+ */
+
+BaseFilter.prototype.analyzer;
+
+/**
+ * @type {(function(Token): boolean)|undefined}
+ */
+
+BaseFilter.prototype.filterer;
+
+/**
+ * @type {(function(Token): Token)|undefined}
+ */
+
+BaseFilter.prototype.mapper;
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+BaseFilter.prototype.tokenize = function (field, value) {
+	var tokens = this.analyzer.tokenize(field, value),
+		x, xl, result, skipped = 0;
+		
+	if (this.filterer) {
+		result = [];
+		for (x = 0, xl = tokens.length; x < xl; ++x) {
+			if (this.filterer(tokens[x])) {
+				tokens[x].positionIncrement += skipped;
+				result[result.length] = tokens[x];
+				skipped = 0;
+			} else {
+				skipped += tokens[x].positionIncrement;
+			}
+		}
+	} else {
+		result = tokens;
+	}
+	
+	if (this.mapper) {
+		result = result.map(this.mapper);
+	}
+	
+	return result;
+};
+
+
+exports.BaseFilter = BaseFilter;
+
+/**
+ * @constructor
+ * @implements {Analyzer}
  * @param {RegExp} regexp
  * @param {boolean} [match]
  */
@@ -961,7 +1028,7 @@ exports.LetterTokenizer = LetterTokenizer;
  * @implements {Analyzer}
  */
 
-function KeywordTokenizer() {};
+function IDTokenizer() {};
 
 /**
  * @param {FieldName} field
@@ -969,7 +1036,7 @@ function KeywordTokenizer() {};
  * @return {Array.<Token>}
  */
 
-KeywordTokenizer.prototype.tokenize = function (field, value) {
+IDTokenizer.prototype.tokenize = function (field, value) {
 	return [ /** @type {Token} */ ({
 		type : "word",
 		value : value,
@@ -980,7 +1047,400 @@ KeywordTokenizer.prototype.tokenize = function (field, value) {
 };
 
 
-exports.KeywordTokenizer = KeywordTokenizer;
+exports.IDTokenizer = IDTokenizer;
+
+/**
+ * @constructor
+ * @implements {Analyzer}
+ * @param {Analyzer} analyzer
+ * @param {number} [min]
+ * @param {number} [max]
+ */
+
+function LengthFilter(analyzer, min, max) {
+	this.analyzer = analyzer;
+	this.min = min || 0;
+	this.max = max || Number.POSITIVE_INFINITY;
+};
+
+/**
+ * @type {Analyzer}
+ */
+
+LengthFilter.prototype.analyzer;
+
+/**
+ * @type {number}
+ */
+
+LengthFilter.prototype.min;
+
+/**
+ * @type {number}
+ */
+
+LengthFilter.prototype.max;
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+LengthFilter.prototype.tokenize = function (field, value) {
+	var x, xl, tokenValue,
+		tokens = this.analyzer.tokenize(field, value),
+		min = this.min,
+		max = this.max,
+		result = [],
+		skipped = 0;
+	for (x = 0, xl = tokens.length; x < xl; ++x) {
+		tokenValue = tokens[x].value;
+		if (typeof tokenValue === "string" && tokenValue.length >= min && tokenValue.length <= max) {
+			tokens[x].positionIncrement += skipped;
+			result[result.length] = tokens[x];
+			skipped = 0;
+		} else {
+			skipped += tokens[x].positionIncrement;
+		}
+	}
+	return result;
+};
+
+
+exports.LengthFilter = LengthFilter;
+
+/**
+ * @constructor
+ * @implements {Analyzer}
+ * @param {Analyzer} analyzer
+ */
+
+function LowerCaseFilter(analyzer) {
+	this.analyzer = analyzer;
+};
+
+/**
+ * @type {Analyzer}
+ */
+
+LowerCaseFilter.prototype.analyzer;
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+LowerCaseFilter.prototype.tokenize = function (field, value) {
+	var x, xl, result = this.analyzer.tokenize(field, value);
+	for (x = 0, xl = result.length; x < xl; ++x) {
+		if (typeof result[x].value === "string") {
+			result[x].value = result[x].value.toLowerCase();
+		}
+	}
+	return result;
+};
+
+
+exports.LowerCaseFilter = LowerCaseFilter;
+
+/**
+ * @constructor
+ * @implements {Analyzer}
+ * @param {Analyzer} analyzer
+ * @param {Object.<boolean>|Array.<string>} stopWords
+ */
+
+function StopFilter(analyzer, stopWords) {
+	this.analyzer = analyzer;
+	if (typeOf(stopWords) === "array") {
+		this.stopWords = StopFilter.toHash(/** @type {Array.<string>} */ (stopWords));
+	} else {
+		this.stopWords = /** @type {Object.<boolean>} */ (stopWords);
+	}
+};
+
+/**
+ * @param {Array.<string>} arr
+ * @return {Object.<boolean>}
+ */
+
+StopFilter.toHash = function (arr) {
+	var x, xl, result = {};
+	for (x = 0, xl = arr.length; x < xl; ++x) {
+		result[arr[x]] = true;
+	}
+	return result;
+};
+
+/**
+ * @type {Analyzer}
+ */
+
+StopFilter.prototype.analyzer;
+
+/**
+ * @type {Object.<boolean>}
+ */
+
+StopFilter.prototype.stopWords;
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+StopFilter.prototype.tokenize = function (field, value) {
+	var x, xl, tokenValue,
+		tokens = this.analyzer.tokenize(field, value),
+		stopWords = this.stopWords,
+		result = [],
+		skipped = 0;
+	for (x = 0, xl = tokens.length; x < xl; ++x) {
+		tokenValue = tokens[x].value;
+		if (typeof tokenValue === "string" && stopWords[tokenValue] !== true) {
+			tokens[x].positionIncrement += skipped;
+			result[result.length] = tokens[x];
+			skipped = 0;
+		} else {
+			skipped += tokens[x].positionIncrement;
+		}
+	}
+	return result;
+};
+
+
+exports.StopFilter = StopFilter;
+
+/**
+ * Transforms the token stream as per the Porter stemming algorithm.
+ * 
+ * Note: the input to the stemming filter must already be in lower case,
+ * so you will need to use LowerCaseFilter farther down the Tokenizer 
+ * chain in order for this to work properly!
+ * 
+ * @constructor
+ * @implements {Analyzer}
+ * @param {Analyzer} analyzer
+ */
+
+function PorterFilter(analyzer) {
+	this.analyzer = analyzer;
+};
+
+/**
+ * @type {Analyzer}
+ */
+
+PorterFilter.prototype.analyzer;
+
+/**
+ * @param {FieldName} field
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+PorterFilter.prototype.tokenize = function (field, value) {
+	var x, xl, result = this.analyzer.tokenize(field, value);
+	for (x = 0, xl = result.length; x < xl; ++x) {
+		if (typeof result[x].value === "string") {
+			result[x].value = porterStem(result[x].value);
+		}
+	}
+	return result;
+};
+
+
+exports.PorterFilter = PorterFilter;
+
+// Porter stemmer in Javascript. Few comments, but it's easy to follow against the rules in the original
+// paper, in
+//
+//  Porter, 1980, An algorithm for suffix stripping, Program, Vol. 14,
+//  no. 3, pp 130-137,
+//
+// see also http://www.tartarus.org/~martin/PorterStemmer
+
+// Release 1 be 'andargor', Jul 2004
+// Release 2 (substantially revised) by Christopher McKenzie, Aug 2009
+
+var porterStem = (function(){
+	var step2list = {
+			"ational" : "ate",
+			"tional" : "tion",
+			"enci" : "ence",
+			"anci" : "ance",
+			"izer" : "ize",
+			"bli" : "ble",
+			"alli" : "al",
+			"entli" : "ent",
+			"eli" : "e",
+			"ousli" : "ous",
+			"ization" : "ize",
+			"ation" : "ate",
+			"ator" : "ate",
+			"alism" : "al",
+			"iveness" : "ive",
+			"fulness" : "ful",
+			"ousness" : "ous",
+			"aliti" : "al",
+			"iviti" : "ive",
+			"biliti" : "ble",
+			"logi" : "log"
+		},
+
+		step3list = {
+			"icate" : "ic",
+			"ative" : "",
+			"alize" : "al",
+			"iciti" : "ic",
+			"ical" : "ic",
+			"ful" : "",
+			"ness" : ""
+		},
+
+		c = "[^aeiou]",          // consonant
+		v = "[aeiouy]",          // vowel
+		C = c + "[^aeiouy]*",    // consonant sequence
+		V = v + "[aeiou]*",      // vowel sequence
+
+		mgr0 = "^(" + C + ")?" + V + C,               // [C]VC... is m>0
+		meq1 = "^(" + C + ")?" + V + C + "(" + V + ")?$",  // [C]VC[V] is m=1
+		mgr1 = "^(" + C + ")?" + V + C + V + C,       // [C]VCVC... is m>1
+		s_v = "^(" + C + ")?" + v;                   // vowel in stem
+
+	return function (w) {
+		var 	stem,
+			suffix,
+			firstch,
+			re,
+			re2,
+			re3,
+			re4,
+			origword = w;
+
+		if (w.length < 3) { return w; }
+
+		firstch = w.substr(0,1);
+		if (firstch == "y") {
+			w = firstch.toUpperCase() + w.substr(1);
+		}
+
+		// Step 1a
+		re = /^(.+?)(ss|i)es$/;
+		re2 = /^(.+?)([^s])s$/;
+
+		if (re.test(w)) { w = w.replace(re,"$1$2"); }
+		else if (re2.test(w)) {	w = w.replace(re2,"$1$2"); }
+
+		// Step 1b
+		re = /^(.+?)eed$/;
+		re2 = /^(.+?)(ed|ing)$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			re = new RegExp(mgr0);
+			if (re.test(fp[1])) {
+				re = /.$/;
+				w = w.replace(re,"");
+			}
+		} else if (re2.test(w)) {
+			var fp = re2.exec(w);
+			stem = fp[1];
+			re2 = new RegExp(s_v);
+			if (re2.test(stem)) {
+				w = stem;
+				re2 = /(at|bl|iz)$/;
+				re3 = new RegExp("([^aeiouylsz])\\1$");
+				re4 = new RegExp("^" + C + v + "[^aeiouwxy]$");
+				if (re2.test(w)) {	w = w + "e"; }
+				else if (re3.test(w)) { re = /.$/; w = w.replace(re,""); }
+				else if (re4.test(w)) { w = w + "e"; }
+			}
+		}
+
+		// Step 1c
+		re = /^(.+?)y$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			stem = fp[1];
+			re = new RegExp(s_v);
+			if (re.test(stem)) { w = stem + "i"; }
+		}
+
+		// Step 2
+		re = /^(.+?)(ational|tional|enci|anci|izer|bli|alli|entli|eli|ousli|ization|ation|ator|alism|iveness|fulness|ousness|aliti|iviti|biliti|logi)$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			stem = fp[1];
+			suffix = fp[2];
+			re = new RegExp(mgr0);
+			if (re.test(stem)) {
+				w = stem + step2list[suffix];
+			}
+		}
+
+		// Step 3
+		re = /^(.+?)(icate|ative|alize|iciti|ical|ful|ness)$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			stem = fp[1];
+			suffix = fp[2];
+			re = new RegExp(mgr0);
+			if (re.test(stem)) {
+				w = stem + step3list[suffix];
+			}
+		}
+
+		// Step 4
+		re = /^(.+?)(al|ance|ence|er|ic|able|ible|ant|ement|ment|ent|ou|ism|ate|iti|ous|ive|ize)$/;
+		re2 = /^(.+?)(s|t)(ion)$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			stem = fp[1];
+			re = new RegExp(mgr1);
+			if (re.test(stem)) {
+				w = stem;
+			}
+		} else if (re2.test(w)) {
+			var fp = re2.exec(w);
+			stem = fp[1] + fp[2];
+			re2 = new RegExp(mgr1);
+			if (re2.test(stem)) {
+				w = stem;
+			}
+		}
+
+		// Step 5
+		re = /^(.+?)e$/;
+		if (re.test(w)) {
+			var fp = re.exec(w);
+			stem = fp[1];
+			re = new RegExp(mgr1);
+			re2 = new RegExp(meq1);
+			re3 = new RegExp("^" + C + v + "[^aeiouwxy]$");
+			if (re.test(stem) || (re2.test(stem) && !(re3.test(stem)))) {
+				w = stem;
+			}
+		}
+
+		re = /ll$/;
+		re2 = new RegExp(mgr1);
+		if (re.test(w) && re2.test(w)) {
+			re = /.$/;
+			w = w.replace(re,"");
+		}
+
+		// and turn initial Y back to y
+
+		if (firstch == "y") {
+			w = firstch.toLowerCase() + w.substr(1);
+		}
+
+		return w;
+	}
+})();
 
 /**
  * @constructor
