@@ -3,7 +3,9 @@
  * @implements {Indexer}
  */
 
-function DefaultIndexer() {};
+function DefaultIndexer() {
+	this.analyzer = new StandardAnalyzer();
+};
 
 /**
  * @param {Object} doc
@@ -13,9 +15,11 @@ function DefaultIndexer() {};
  */
 
 DefaultIndexer.prototype.index = function (doc, id, field) {
-	var terms,
+	var tokens,
 		entries,
 		key,
+		tokenValue,
+		position = 0,
 		/** @type {Array.<TermVector>} */
 		result = [];
 	
@@ -31,25 +35,27 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 		break;
 		
 	case 'string':
-		terms = doc.replace(/[^\w\d]/g, " ").replace(/\s\s/g, " ").toLowerCase().split(" ");
+		tokens = this.analyzer.tokenize(/** @type {string} */ (doc));
 		entries = {};
 		
-		for (key = 0; key < terms.length; ++key) {
-			if (!entries[terms[key]]) {
-				entries[terms[key]] = /** @type {TermVector} */ ({
-					term : terms[key],
+		for (key = 0; key < tokens.length; ++key) {
+			tokenValue = tokens[key].value;
+			position += tokens[key].positionIncrement;
+			if (!entries[tokenValue]) {
+				entries[tokenValue] = /** @type {TermVector} */ ({
+					term : tokenValue,
 					termFrequency : 1,
-					termPositions : [key],
-					//termOffsets : [key],  //FIXME
+					termPositions : [ position ],
+					termOffsets : [ tokens[key].startOffset ],
 					field : field,
-					totalFieldTokens : terms.length,
+					totalFieldTokens : tokens.length,
 					documentID : id
 				});
 			} else {
 				//TODO: Optimize
-				entries[terms[key]].termFrequency++;
-				entries[terms[key]].termPositions.push(key);
-				//entries[terms[key]].termOffsets.push(key);  //FIXME
+				entries[tokenValue].termFrequency++;
+				entries[tokenValue].termPositions.push(position);
+				entries[tokenValue].termOffsets.push(tokens[key].startOffset);
 			}
 		}
 		

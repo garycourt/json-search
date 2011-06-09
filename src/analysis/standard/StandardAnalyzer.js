@@ -4,7 +4,7 @@
  */
 
 function StandardAnalyzer() {
-	this.analyzer = new PorterFilter(new StopFilter(new LowerCaseFilter(new StandardTokenizer()), StandardAnalyzer.ENGLISH_STOP_WORDS));
+	this.analyzer = new StopFilter(new LowerCaseFilter(new StandardTokenizer()), StandardAnalyzer.ENGLISH_STOP_WORDS);
 };
 
 /**

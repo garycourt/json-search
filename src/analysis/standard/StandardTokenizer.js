@@ -17,7 +17,7 @@ StandardTokenizer.LETTER = /[A-Za-z]/;
  * @const
  */
 
-StandardTokenizer.SKIP_LETTER = /['&@.\-_]/;
+StandardTokenizer.SKIP_LETTER = /['&@_]/;
 
 /**
  * @const
