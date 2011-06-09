@@ -21,13 +21,12 @@ function PorterFilter(analyzer) {
 PorterFilter.prototype.analyzer;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-PorterFilter.prototype.tokenize = function (field, value) {
-	var x, xl, result = this.analyzer.tokenize(field, value);
+PorterFilter.prototype.tokenize = function (value) {
+	var x, xl, result = this.analyzer.tokenize(value);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = porterStem(result[x].value);

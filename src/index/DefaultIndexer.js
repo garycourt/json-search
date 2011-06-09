@@ -7,6 +7,7 @@ function DefaultIndexer() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
  * @param {FieldName} [field]
  * @return {Array.<TermVector>}
  */

@@ -4,7 +4,7 @@ var spawn = require('child_process').spawn;
 var peg = require('./lib/node-pegjs');
 
 var srcDir = './src/';
-var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'analysis/', srcDir + 'analysis/porter/', srcDir + 'index/', srcDir + 'search/', srcDir + 'parser/'];
+var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'analysis/', srcDir + 'analysis/porter/', srcDir + 'analysis/standard/', srcDir + 'index/', srcDir + 'search/', srcDir + 'parser/'];
 var codeOutput = 'json-search.js';
 var interfaceDirs = [srcDir + 'interface/'];
 var interfaceOutput = 'externs.js';

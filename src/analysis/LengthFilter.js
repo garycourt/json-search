@@ -31,14 +31,13 @@ LengthFilter.prototype.min;
 LengthFilter.prototype.max;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-LengthFilter.prototype.tokenize = function (field, value) {
+LengthFilter.prototype.tokenize = function (value) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(field, value),
+		tokens = this.analyzer.tokenize(value),
 		min = this.min,
 		max = this.max,
 		result = [],

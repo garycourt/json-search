@@ -2,10 +2,9 @@
  * @constructor
  * @implements {Analyzer}
  * @param {RegExp} regexp
- * @param {boolean} [match]
  */
 
-function CharTokenizer(regexp, match) {
+function CharTokenizer(regexp) {
 	this.regexp = regexp;
 };
 
@@ -16,12 +15,11 @@ function CharTokenizer(regexp, match) {
 CharTokenizer.prototype.regexp;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-CharTokenizer.prototype.tokenize = function (field, value) {
+CharTokenizer.prototype.tokenize = function (value) {
 	var x, xl, 
 		regexp = this.regexp, 
 		word = "", 
@@ -29,7 +27,6 @@ CharTokenizer.prototype.tokenize = function (field, value) {
 		result = [];
 	
 	for (x = 0, xl = value.length; x < xl; ++x) {
-		//TODO: Make this Unicode compliant
 		if (regexp.test(value[x])) {
 			word += value[x];
 		} else {
@@ -80,7 +77,7 @@ WhitespaceTokenizer.prototype.regexp = /[^\u0009-\u000D\u001C-\u001F\u0020\u0085
 
 function LetterTokenizer() {};
 LetterTokenizer.prototype = Object.create(CharTokenizer.prototype);
-LetterTokenizer.prototype.regexp = /[A-Za-z]/;
+LetterTokenizer.prototype.regexp = /[A-Za-z]/;  //TODO: Make this Unicode compliant
 
 
 exports.CharTokenizer = CharTokenizer;

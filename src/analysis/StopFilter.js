@@ -40,20 +40,19 @@ StopFilter.prototype.analyzer;
 StopFilter.prototype.stopWords;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-StopFilter.prototype.tokenize = function (field, value) {
+StopFilter.prototype.tokenize = function (value) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(field, value),
+		tokens = this.analyzer.tokenize(value),
 		stopWords = this.stopWords,
 		result = [],
 		skipped = 0;
 	for (x = 0, xl = tokens.length; x < xl; ++x) {
 		tokenValue = tokens[x].value;
-		if (typeof tokenValue === "string" && stopWords[tokenValue] !== true) {
+		if (typeof tokenValue !== "string" || stopWords[tokenValue] !== true) {
 			tokens[x].positionIncrement += skipped;
 			result[result.length] = tokens[x];
 			skipped = 0;

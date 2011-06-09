@@ -6,12 +6,11 @@
 function IDTokenizer() {};
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-IDTokenizer.prototype.tokenize = function (field, value) {
+IDTokenizer.prototype.tokenize = function (value) {
 	return [ /** @type {Token} */ ({
 		type : "word",
 		value : value,

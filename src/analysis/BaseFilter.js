@@ -31,13 +31,12 @@ BaseFilter.prototype.filterer;
 BaseFilter.prototype.mapper;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-BaseFilter.prototype.tokenize = function (field, value) {
-	var tokens = this.analyzer.tokenize(field, value),
+BaseFilter.prototype.tokenize = function (value) {
+	var tokens = this.analyzer.tokenize(value),
 		x, xl, result, skipped = 0;
 		
 	if (this.filterer) {

@@ -4,7 +4,7 @@
  */
 
 function StandardAnalyzer() {
-	this.analyzer = new StopFilter(new LowerCaseFilter(new StandardTokenizer()), StandardAnalyzer.ENGLISH_STOP_WORDS);
+	this.analyzer = new PorterFilter(new StopFilter(new LowerCaseFilter(new StandardTokenizer()), StandardAnalyzer.ENGLISH_STOP_WORDS));
 };
 
 /**
@@ -21,13 +21,12 @@ StandardAnalyzer.ENGLISH_STOP_WORDS = StopFilter.toHash(["a", "an", "and", "are"
 StandardAnalyzer.prototype.analyzer;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-StandardAnalyzer.prototype.tokenize = function (field, value) {
-	return this.analyzer.tokenize(field, value);
+StandardAnalyzer.prototype.tokenize = function (value) {
+	return this.analyzer.tokenize(value);
 };
 
 

@@ -900,13 +900,12 @@ BaseFilter.prototype.filterer;
 BaseFilter.prototype.mapper;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-BaseFilter.prototype.tokenize = function (field, value) {
-	var tokens = this.analyzer.tokenize(field, value),
+BaseFilter.prototype.tokenize = function (value) {
+	var tokens = this.analyzer.tokenize(value),
 		x, xl, result, skipped = 0;
 		
 	if (this.filterer) {
@@ -938,10 +937,9 @@ exports.BaseFilter = BaseFilter;
  * @constructor
  * @implements {Analyzer}
  * @param {RegExp} regexp
- * @param {boolean} [match]
  */
 
-function CharTokenizer(regexp, match) {
+function CharTokenizer(regexp) {
 	this.regexp = regexp;
 };
 
@@ -952,12 +950,11 @@ function CharTokenizer(regexp, match) {
 CharTokenizer.prototype.regexp;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-CharTokenizer.prototype.tokenize = function (field, value) {
+CharTokenizer.prototype.tokenize = function (value) {
 	var x, xl, 
 		regexp = this.regexp, 
 		word = "", 
@@ -965,7 +962,6 @@ CharTokenizer.prototype.tokenize = function (field, value) {
 		result = [];
 	
 	for (x = 0, xl = value.length; x < xl; ++x) {
-		//TODO: Make this Unicode compliant
 		if (regexp.test(value[x])) {
 			word += value[x];
 		} else {
@@ -1016,7 +1012,7 @@ WhitespaceTokenizer.prototype.regexp = /[^\u0009-\u000D\u001C-\u001F\u0020\u0085
 
 function LetterTokenizer() {};
 LetterTokenizer.prototype = Object.create(CharTokenizer.prototype);
-LetterTokenizer.prototype.regexp = /[A-Za-z]/;
+LetterTokenizer.prototype.regexp = /[A-Za-z]/;  //TODO: Make this Unicode compliant
 
 
 exports.CharTokenizer = CharTokenizer;
@@ -1031,12 +1027,11 @@ exports.LetterTokenizer = LetterTokenizer;
 function IDTokenizer() {};
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-IDTokenizer.prototype.tokenize = function (field, value) {
+IDTokenizer.prototype.tokenize = function (value) {
 	return [ /** @type {Token} */ ({
 		type : "word",
 		value : value,
@@ -1082,14 +1077,13 @@ LengthFilter.prototype.min;
 LengthFilter.prototype.max;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-LengthFilter.prototype.tokenize = function (field, value) {
+LengthFilter.prototype.tokenize = function (value) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(field, value),
+		tokens = this.analyzer.tokenize(value),
 		min = this.min,
 		max = this.max,
 		result = [],
@@ -1127,13 +1121,12 @@ function LowerCaseFilter(analyzer) {
 LowerCaseFilter.prototype.analyzer;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-LowerCaseFilter.prototype.tokenize = function (field, value) {
-	var x, xl, result = this.analyzer.tokenize(field, value);
+LowerCaseFilter.prototype.tokenize = function (value) {
+	var x, xl, result = this.analyzer.tokenize(value);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = result[x].value.toLowerCase();
@@ -1187,20 +1180,19 @@ StopFilter.prototype.analyzer;
 StopFilter.prototype.stopWords;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-StopFilter.prototype.tokenize = function (field, value) {
+StopFilter.prototype.tokenize = function (value) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(field, value),
+		tokens = this.analyzer.tokenize(value),
 		stopWords = this.stopWords,
 		result = [],
 		skipped = 0;
 	for (x = 0, xl = tokens.length; x < xl; ++x) {
 		tokenValue = tokens[x].value;
-		if (typeof tokenValue === "string" && stopWords[tokenValue] !== true) {
+		if (typeof tokenValue !== "string" || stopWords[tokenValue] !== true) {
 			tokens[x].positionIncrement += skipped;
 			result[result.length] = tokens[x];
 			skipped = 0;
@@ -1237,13 +1229,12 @@ function PorterFilter(analyzer) {
 PorterFilter.prototype.analyzer;
 
 /**
- * @param {FieldName} field
  * @param {string} value
  * @return {Array.<Token>}
  */
 
-PorterFilter.prototype.tokenize = function (field, value) {
-	var x, xl, result = this.analyzer.tokenize(field, value);
+PorterFilter.prototype.tokenize = function (value) {
+	var x, xl, result = this.analyzer.tokenize(value);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = porterStem(result[x].value);
@@ -1444,6 +1435,182 @@ var porterStem = (function(){
 
 /**
  * @constructor
+ * @implements {Analyzer}
+ */
+
+function StandardAnalyzer() {
+	this.analyzer = new PorterFilter(new StopFilter(new LowerCaseFilter(new StandardTokenizer()), StandardAnalyzer.ENGLISH_STOP_WORDS));
+};
+
+/**
+ * @const
+ * @type {Object.<boolean>}
+ */
+
+StandardAnalyzer.ENGLISH_STOP_WORDS = StopFilter.toHash(["a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then", "there", "these", "they", "this", "to", "was", "will", "with"]);
+
+/**
+ * @type {Analyzer}
+ */
+
+StandardAnalyzer.prototype.analyzer;
+
+/**
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+StandardAnalyzer.prototype.tokenize = function (value) {
+	return this.analyzer.tokenize(value);
+};
+
+
+exports.StandardAnalyzer = StandardAnalyzer;
+
+/**
+ * @constructor
+ * @implements {Analyzer}
+ */
+
+function StandardTokenizer() {};
+
+//TODO: Make these regular expressions Unicode compliant
+
+/**
+ * @const
+ */
+
+StandardTokenizer.LETTER = /[A-Za-z]/;
+
+/**
+ * @const
+ */
+
+StandardTokenizer.SKIP_LETTER = /['&@.\-_]/;
+
+/**
+ * @const
+ */
+
+StandardTokenizer.DIGIT = /[0-9]/;
+
+/**
+ * @const
+ */
+
+StandardTokenizer.ALPHANUM = /[0-9A-Za-z]/;
+
+/**
+ * @param {string} value
+ * @return {Array.<Token>}
+ */
+
+StandardTokenizer.prototype.tokenize = function (value) {
+	var x, xl, chr, 
+		state = StandardTokenizerState.UNKNOWN, 
+		startOffset = 0,
+		tokenValue = "",
+		tokenReady = false,
+		result = [];
+	
+	for (x = 0, xl = value.length; x <= xl; ++x) {
+		chr = value[x];
+		
+		if (chr !== undefined) {
+			switch (state) {
+			case StandardTokenizerState.UNKNOWN:
+				if (StandardTokenizer.LETTER.test(chr)) {
+					state = StandardTokenizerState.STRING;
+					startOffset = x;
+					tokenValue = chr;
+				} else if (StandardTokenizer.DIGIT.test(chr)) {
+					state = StandardTokenizerState.INT;
+					startOffset = x;
+					tokenValue = chr;
+				}
+				break;
+				
+			case StandardTokenizerState.STRING:
+				if (StandardTokenizer.ALPHANUM.test(chr)) {
+					tokenValue += chr;
+				} else if (!StandardTokenizer.SKIP_LETTER.test(chr)) {
+					tokenReady = "word";
+				}
+				break;
+			
+			case StandardTokenizerState.INT:
+				if (StandardTokenizer.DIGIT.test(chr)) {
+					tokenValue += chr;
+				} else if (chr === ".") {
+					state = StandardTokenizerState.FLOAT;
+					tokenValue += chr;
+				} else if (StandardTokenizer.LETTER.test(chr)) {
+					state = StandardTokenizerState.STRING;
+					tokenValue += chr;
+				} else {
+					tokenReady = "number";
+					tokenValue = parseInt(tokenValue, 10);
+				}
+				break;
+			
+			case StandardTokenizerState.FLOAT:
+				if (StandardTokenizer.DIGIT.test(chr)) {
+					tokenValue += chr;
+				} else if (chr === "." || StandardTokenizer.LETTER.test(chr)) {
+					state = StandardTokenizerState.STRING;
+					tokenValue += chr;
+				} else {
+					tokenReady = "number";
+					tokenValue = parseFloat(tokenValue);
+				}
+				break;
+			}
+		} else {  //end of string
+			switch (state) {
+			case StandardTokenizerState.STRING:
+				tokenReady = "word";
+				break;
+				
+			case StandardTokenizerState.INT:
+			case StandardTokenizerState.FLOAT:
+				tokenReady = "number";
+				tokenValue = parseFloat(tokenValue);
+				break;
+			}
+		}
+		
+		if (tokenReady) {
+			result[result.length] = /** @type {Token} */ ({
+				type : tokenReady,
+				value : tokenValue,
+				startOffset : startOffset,
+				endOffset : x,
+				positionIncrement : 1
+			});
+			
+			state = StandardTokenizerState.UNKNOWN
+			tokenReady = false;
+			--x;  //reprocess character
+		}
+	}
+	
+	return result;
+};
+
+/**
+ * @const
+ * @enum
+ */
+
+StandardTokenizerState = {
+	UNKNOWN : 0,
+	STRING : 1,
+	INT : 2,
+	FLOAT : 3
+};
+
+/**
+ * @constructor
  * @implements {Indexer}
  */
 
@@ -1451,6 +1618,7 @@ function DefaultIndexer() {};
 
 /**
  * @param {Object} doc
+ * @param {DocumentID} id
  * @param {FieldName} [field]
  * @return {Array.<TermVector>}
  */
