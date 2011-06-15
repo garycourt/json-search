@@ -22,11 +22,12 @@ StandardAnalyzer.prototype.analyzer;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StandardAnalyzer.prototype.tokenize = function (value) {
-	return this.analyzer.tokenize(value);
+StandardAnalyzer.prototype.parse = function (value, field) {
+	return this.analyzer.parse(value, field);
 };
 
 

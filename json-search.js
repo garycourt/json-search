@@ -901,11 +901,12 @@ BaseFilter.prototype.mapper;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-BaseFilter.prototype.tokenize = function (value) {
-	var tokens = this.analyzer.tokenize(value),
+BaseFilter.prototype.parse = function (value, field) {
+	var tokens = this.analyzer.parse(value, field),
 		x, xl, result, skipped = 0;
 		
 	if (this.filterer) {
@@ -951,10 +952,11 @@ CharTokenizer.prototype.regexp;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-CharTokenizer.prototype.tokenize = function (value) {
+CharTokenizer.prototype.parse = function (value, field) {
 	var x, xl, 
 		regexp = this.regexp, 
 		word = "", 
@@ -967,7 +969,6 @@ CharTokenizer.prototype.tokenize = function (value) {
 		} else {
 			if (word.length) {
 				result[result.length] = /** @type {Token} */ ({
-					type : "word",
 					value : word,
 					startOffset : startOffset,
 					endOffset : x,
@@ -981,7 +982,6 @@ CharTokenizer.prototype.tokenize = function (value) {
 	
 	if (word.length) {
 		result[result.length] = /** @type {Token} */ ({
-			type : "word",
 			value : word,
 			startOffset : startOffset,
 			endOffset : value.length,
@@ -1028,12 +1028,12 @@ function IDTokenizer() {};
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-IDTokenizer.prototype.tokenize = function (value) {
+IDTokenizer.prototype.parse = function (value, field) {
 	return [ /** @type {Token} */ ({
-		type : "word",
 		value : value,
 		startOffset : 0,
 		endOffset : value.length,
@@ -1078,12 +1078,13 @@ LengthFilter.prototype.max;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-LengthFilter.prototype.tokenize = function (value) {
+LengthFilter.prototype.parse = function (value, field) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(value),
+		tokens = this.analyzer.parse(value, field),
 		min = this.min,
 		max = this.max,
 		result = [],
@@ -1122,11 +1123,12 @@ LowerCaseFilter.prototype.analyzer;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-LowerCaseFilter.prototype.tokenize = function (value) {
-	var x, xl, result = this.analyzer.tokenize(value);
+LowerCaseFilter.prototype.parse = function (value, field) {
+	var x, xl, result = this.analyzer.parse(value, field);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = result[x].value.toLowerCase();
@@ -1181,12 +1183,13 @@ StopFilter.prototype.stopWords;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StopFilter.prototype.tokenize = function (value) {
+StopFilter.prototype.parse = function (value, field) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(value),
+		tokens = this.analyzer.parse(value, field),
 		stopWords = this.stopWords,
 		result = [],
 		skipped = 0;
@@ -1230,11 +1233,12 @@ PorterFilter.prototype.analyzer;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-PorterFilter.prototype.tokenize = function (value) {
-	var x, xl, result = this.analyzer.tokenize(value);
+PorterFilter.prototype.parse = function (value, field) {
+	var x, xl, result = this.analyzer.parse(value, field);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = porterStem(result[x].value);
@@ -1457,11 +1461,12 @@ StandardAnalyzer.prototype.analyzer;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StandardAnalyzer.prototype.tokenize = function (value) {
-	return this.analyzer.tokenize(value);
+StandardAnalyzer.prototype.parse = function (value, field) {
+	return this.analyzer.parse(value, field);
 };
 
 
@@ -1502,10 +1507,11 @@ StandardTokenizer.ALPHANUM = /[0-9A-Za-z]/;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StandardTokenizer.prototype.tokenize = function (value) {
+StandardTokenizer.prototype.parse = function (value, field) {
 	var x, xl, chr, 
 		state = StandardTokenizerState.UNKNOWN, 
 		startOffset = 0,
@@ -1534,7 +1540,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 				if (StandardTokenizer.ALPHANUM.test(chr)) {
 					tokenValue += chr;
 				} else if (!StandardTokenizer.SKIP_LETTER.test(chr)) {
-					tokenReady = "word";
+					tokenReady = true;  //word
 				}
 				break;
 			
@@ -1548,7 +1554,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 					state = StandardTokenizerState.STRING;
 					tokenValue += chr;
 				} else {
-					tokenReady = "number";
+					tokenReady = true;  //number
 					tokenValue = parseInt(tokenValue, 10);
 				}
 				break;
@@ -1560,7 +1566,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 					state = StandardTokenizerState.STRING;
 					tokenValue += chr;
 				} else {
-					tokenReady = "number";
+					tokenReady = true;  //number
 					tokenValue = parseFloat(tokenValue);
 				}
 				break;
@@ -1568,12 +1574,12 @@ StandardTokenizer.prototype.tokenize = function (value) {
 		} else {  //end of string
 			switch (state) {
 			case StandardTokenizerState.STRING:
-				tokenReady = "word";
+				tokenReady = true; //word
 				break;
 				
 			case StandardTokenizerState.INT:
 			case StandardTokenizerState.FLOAT:
-				tokenReady = "number";
+				tokenReady = true;  //number
 				tokenValue = parseFloat(tokenValue);
 				break;
 			}
@@ -1581,7 +1587,6 @@ StandardTokenizer.prototype.tokenize = function (value) {
 		
 		if (tokenReady) {
 			result[result.length] = /** @type {Token} */ ({
-				type : tokenReady,
 				value : tokenValue,
 				startOffset : startOffset,
 				endOffset : x,
@@ -1609,23 +1614,18 @@ StandardTokenizerState = {
 	FLOAT : 3
 };
 
+
+exports.StandardTokenizer = StandardTokenizer;
+
 /**
  * @constructor
  * @implements {Indexer}
- * @param {FieldName} [defaultField]
  * @param {Analyzer} [analyzer]
  */
 
-function DefaultIndexer(defaultField, analyzer) {
-	this.defaultField = defaultField || null;
+function DefaultIndexer(analyzer) {
 	this.analyzer = analyzer || new StandardAnalyzer();
 };
-
-/**
- * @type {FieldName}
- */
-
-DefaultIndexer.prototype.defaultField = null;
 
 /**
  * @type {Analyzer}
@@ -1639,8 +1639,8 @@ DefaultIndexer.prototype.analyzer;
  * @return {Array.<Token>}
  */
 
-DefaultIndexer.prototype.tokenize = function (value, field) {
-	return this.analyzer.tokenize(value);
+DefaultIndexer.prototype.parse = function (value, field) {
+	return this.analyzer.parse(value, field);
 };
 
 /**
@@ -1671,7 +1671,7 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 		break;
 		
 	case 'string':
-		tokens = this.tokenize(/** @type {string} */ (doc), field);
+		tokens = this.parse(/** @type {string} */ (doc), field);
 		entries = {};
 		
 		for (key = 0; key < tokens.length; ++key) {
@@ -2673,6 +2673,7 @@ exports.MultiTermQuery = MultiTermQuery;
 /**
  * Used only by Searcher. Do not include this in your queries.
  * 
+ * @protected
  * @constructor
  * @implements {Query}
  * @param {Query} query
@@ -2799,9 +2800,6 @@ NormalizedScorer.prototype.onBulkWrite = function (docs) {
 	}
 	this.emitBulk(docs);
 };
-
-
-exports.NormalizedQuery = NormalizedQuery;
 
 /**
  * @constructor
@@ -3086,27 +3084,16 @@ Searcher.prototype._index;
 Searcher.prototype.similarity = new DefaultSimilarity();
 
 /**
- * @param {Query|string} query
+ * @param {Query} query
  * @param {number} max
  * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
  */
 
 Searcher.prototype.search = function (query, max, callback) {
-	var self = this, collector, normQuery;
-	
-	if (typeof query === "string") {
-		this._index.getIndexer(function (err, indexer) {
-			if (!err) {
-				self.search(QueryParser.parse(/** @type {string} */ (query), indexer.defaultField, indexer), max, callback);
-			} else {
-				callback(err);
-			}
-		});
-	} else {
-		collector = new TopDocumentsCollector(max, callback);
-		normQuery = new NormalizedQuery(query);
-		normQuery.score(this.similarity, this._index).pipe(collector);
-	}
+	var collector, normQuery;
+	collector = new TopDocumentsCollector(max, callback);
+	normQuery = new NormalizedQuery(query);
+	normQuery.score(this.similarity, this._index).pipe(collector);
 };
 
 
@@ -4395,13 +4382,13 @@ QueryParser.impl = (function(){
             field = field ? field[0] : defaultField;
             
             if (term.phrase) {
-              return PhraseQuery.createFromTokens(field, analyzer.tokenize(term.phrase, field), term.slop, boost);
+              return PhraseQuery.createFromTokens(field, analyzer.parse(term.phrase, field), term.slop, boost);
             } else if (term.startTerm) {
               return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
             } else if (term.prefix) {
               return new PrefixQuery(field, term.prefix, boost);
             } else {
-              var tokens = analyzer.tokenize(term.term, field);
+              var tokens = analyzer.parse(term.term, field);
               if (tokens.length === 1) {
                 return new TermQuery(field, tokens[0].value, boost);
               } else if (tokens.length > 1) {

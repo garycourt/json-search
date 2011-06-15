@@ -33,10 +33,11 @@ StandardTokenizer.ALPHANUM = /[0-9A-Za-z]/;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StandardTokenizer.prototype.tokenize = function (value) {
+StandardTokenizer.prototype.parse = function (value, field) {
 	var x, xl, chr, 
 		state = StandardTokenizerState.UNKNOWN, 
 		startOffset = 0,
@@ -65,7 +66,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 				if (StandardTokenizer.ALPHANUM.test(chr)) {
 					tokenValue += chr;
 				} else if (!StandardTokenizer.SKIP_LETTER.test(chr)) {
-					tokenReady = "word";
+					tokenReady = true;  //word
 				}
 				break;
 			
@@ -79,7 +80,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 					state = StandardTokenizerState.STRING;
 					tokenValue += chr;
 				} else {
-					tokenReady = "number";
+					tokenReady = true;  //number
 					tokenValue = parseInt(tokenValue, 10);
 				}
 				break;
@@ -91,7 +92,7 @@ StandardTokenizer.prototype.tokenize = function (value) {
 					state = StandardTokenizerState.STRING;
 					tokenValue += chr;
 				} else {
-					tokenReady = "number";
+					tokenReady = true;  //number
 					tokenValue = parseFloat(tokenValue);
 				}
 				break;
@@ -99,12 +100,12 @@ StandardTokenizer.prototype.tokenize = function (value) {
 		} else {  //end of string
 			switch (state) {
 			case StandardTokenizerState.STRING:
-				tokenReady = "word";
+				tokenReady = true; //word
 				break;
 				
 			case StandardTokenizerState.INT:
 			case StandardTokenizerState.FLOAT:
-				tokenReady = "number";
+				tokenReady = true;  //number
 				tokenValue = parseFloat(tokenValue);
 				break;
 			}
@@ -112,7 +113,6 @@ StandardTokenizer.prototype.tokenize = function (value) {
 		
 		if (tokenReady) {
 			result[result.length] = /** @type {Token} */ ({
-				type : tokenReady,
 				value : tokenValue,
 				startOffset : startOffset,
 				endOffset : x,
@@ -139,3 +139,6 @@ StandardTokenizerState = {
 	INT : 2,
 	FLOAT : 3
 };
+
+
+exports.StandardTokenizer = StandardTokenizer;

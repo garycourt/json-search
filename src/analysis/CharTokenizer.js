@@ -16,10 +16,11 @@ CharTokenizer.prototype.regexp;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-CharTokenizer.prototype.tokenize = function (value) {
+CharTokenizer.prototype.parse = function (value, field) {
 	var x, xl, 
 		regexp = this.regexp, 
 		word = "", 
@@ -32,7 +33,6 @@ CharTokenizer.prototype.tokenize = function (value) {
 		} else {
 			if (word.length) {
 				result[result.length] = /** @type {Token} */ ({
-					type : "word",
 					value : word,
 					startOffset : startOffset,
 					endOffset : x,
@@ -46,7 +46,6 @@ CharTokenizer.prototype.tokenize = function (value) {
 	
 	if (word.length) {
 		result[result.length] = /** @type {Token} */ ({
-			type : "word",
 			value : word,
 			startOffset : startOffset,
 			endOffset : value.length,

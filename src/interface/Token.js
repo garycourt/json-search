@@ -5,12 +5,6 @@
 function Token() {};
 
 /**
- * @type {string}
- */
-
-Token.prototype.type;
-
-/**
  * @type {string|undefined}
  */
 

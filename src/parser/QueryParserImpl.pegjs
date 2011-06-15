@@ -96,13 +96,13 @@ TermQuery = field:(Term ":")? term:(Phrase / Range / TermType) boost:Boost {
   field = field ? field[0] : defaultField;
   
   if (term.phrase) {
-    return PhraseQuery.createFromTokens(field, analyzer.tokenize(term.phrase, field), term.slop, boost);
+    return PhraseQuery.createFromTokens(field, analyzer.parse(term.phrase, field), term.slop, boost);
   } else if (term.startTerm) {
     return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
   } else if (term.prefix) {
     return new PrefixQuery(field, term.prefix, boost);
   } else {
-    var tokens = analyzer.tokenize(term.term, field);
+    var tokens = analyzer.parse(term.term, field);
     if (tokens.length === 1) {
       return new TermQuery(field, tokens[0].value, boost);
     } else if (tokens.length > 1) {

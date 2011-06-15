@@ -6,7 +6,8 @@ function Analyzer() {};
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-Analyzer.prototype.tokenize = function (value) {};
+Analyzer.prototype.parse = function (value, field) {};

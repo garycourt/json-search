@@ -7,12 +7,12 @@ function IDTokenizer() {};
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-IDTokenizer.prototype.tokenize = function (value) {
+IDTokenizer.prototype.parse = function (value, field) {
 	return [ /** @type {Token} */ ({
-		type : "word",
 		value : value,
 		startOffset : 0,
 		endOffset : value.length,

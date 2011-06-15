@@ -1,6 +1,7 @@
 /**
  * Used only by Searcher. Do not include this in your queries.
  * 
+ * @protected
  * @constructor
  * @implements {Query}
  * @param {Query} query
@@ -127,6 +128,3 @@ NormalizedScorer.prototype.onBulkWrite = function (docs) {
 	}
 	this.emitBulk(docs);
 };
-
-
-exports.NormalizedQuery = NormalizedQuery;

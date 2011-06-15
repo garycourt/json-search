@@ -6,10 +6,11 @@ function Analyzer() {};
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-Analyzer.prototype.tokenize = function (value) {};
+Analyzer.prototype.parse = function (value, field) {};
 
 
 /**
@@ -83,18 +84,12 @@ Index.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart
 function Indexer() {};
 
 /**
- * @type {FieldName}
- */
-
-Indexer.prototype.defaultField;
-
-/**
  * @param {string} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-Indexer.prototype.tokenize = function (value, field) {};
+Indexer.prototype.parse = function (value, field) {};
 
 /**
  * @param {*} doc
@@ -268,12 +263,6 @@ TermVector.prototype.totalDocuments;
  */
 
 function Token() {};
-
-/**
- * @type {string}
- */
-
-Token.prototype.type;
 
 /**
  * @type {string|undefined}

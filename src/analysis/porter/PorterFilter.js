@@ -22,11 +22,12 @@ PorterFilter.prototype.analyzer;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-PorterFilter.prototype.tokenize = function (value) {
-	var x, xl, result = this.analyzer.tokenize(value);
+PorterFilter.prototype.parse = function (value, field) {
+	var x, xl, result = this.analyzer.parse(value, field);
 	for (x = 0, xl = result.length; x < xl; ++x) {
 		if (typeof result[x].value === "string") {
 			result[x].value = porterStem(result[x].value);

@@ -1,20 +1,12 @@
 /**
  * @constructor
  * @implements {Indexer}
- * @param {FieldName} [defaultField]
  * @param {Analyzer} [analyzer]
  */
 
-function DefaultIndexer(defaultField, analyzer) {
-	this.defaultField = defaultField || null;
+function DefaultIndexer(analyzer) {
 	this.analyzer = analyzer || new StandardAnalyzer();
 };
-
-/**
- * @type {FieldName}
- */
-
-DefaultIndexer.prototype.defaultField = null;
 
 /**
  * @type {Analyzer}
@@ -28,8 +20,8 @@ DefaultIndexer.prototype.analyzer;
  * @return {Array.<Token>}
  */
 
-DefaultIndexer.prototype.tokenize = function (value, field) {
-	return this.analyzer.tokenize(value);
+DefaultIndexer.prototype.parse = function (value, field) {
+	return this.analyzer.parse(value, field);
 };
 
 /**
@@ -60,7 +52,7 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 		break;
 		
 	case 'string':
-		tokens = this.tokenize(/** @type {string} */ (doc), field);
+		tokens = this.parse(/** @type {string} */ (doc), field);
 		entries = {};
 		
 		for (key = 0; key < tokens.length; ++key) {

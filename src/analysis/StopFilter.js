@@ -41,12 +41,13 @@ StopFilter.prototype.stopWords;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-StopFilter.prototype.tokenize = function (value) {
+StopFilter.prototype.parse = function (value, field) {
 	var x, xl, tokenValue,
-		tokens = this.analyzer.tokenize(value),
+		tokens = this.analyzer.parse(value, field),
 		stopWords = this.stopWords,
 		result = [],
 		skipped = 0;

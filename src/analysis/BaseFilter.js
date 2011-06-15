@@ -32,11 +32,12 @@ BaseFilter.prototype.mapper;
 
 /**
  * @param {string} value
+ * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-BaseFilter.prototype.tokenize = function (value) {
-	var tokens = this.analyzer.tokenize(value),
+BaseFilter.prototype.parse = function (value, field) {
+	var tokens = this.analyzer.parse(value, field),
 		x, xl, result, skipped = 0;
 		
 	if (this.filterer) {

@@ -6,18 +6,12 @@
 function Indexer() {};
 
 /**
- * @type {FieldName}
- */
-
-Indexer.prototype.defaultField;
-
-/**
  * @param {string} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
-Indexer.prototype.tokenize = function (value, field) {};
+Indexer.prototype.parse = function (value, field) {};
 
 /**
  * @param {*} doc
