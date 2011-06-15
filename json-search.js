@@ -1682,7 +1682,8 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 					term : tokenValue,
 					termFrequency : 1,
 					termPositions : [ position ],
-					termOffsets : [ tokens[key].startOffset ],
+					termStartOffsets : [ tokens[key].startOffset ],
+					termEndOffsets : [ tokens[key].endOffset ],
 					field : field,
 					totalFieldTokens : tokens.length,
 					documentID : id
@@ -1691,7 +1692,8 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 				//TODO: Optimize
 				entries[tokenValue].termFrequency++;
 				entries[tokenValue].termPositions.push(position);
-				entries[tokenValue].termOffsets.push(tokens[key].startOffset);
+				entries[tokenValue].termStartOffsets.push(tokens[key].startOffset);
+				entries[tokenValue].termEndOffsets.push(tokens[key].endOffset);
 			}
 		}
 		

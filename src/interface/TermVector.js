@@ -17,16 +17,22 @@ TermVector.prototype.term;
 TermVector.prototype.termFrequency;
 
 /**
- * @type {Array.<number>|null|undefined}
+ * @type {Array.<number>|undefined}
  */
 
 TermVector.prototype.termPositions;
 
 /**
- * @type {Array.<number>|null|undefined}
+ * @type {Array.<number>|undefined}
  */
 
-TermVector.prototype.termOffsets;
+TermVector.prototype.termStartOffsets;
+
+/**
+ * @type {Array.<number>|undefined}
+ */
+
+TermVector.prototype.termEndOffsets;
 
 /**
  * @type {FieldName}
