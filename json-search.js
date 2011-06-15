@@ -106,7 +106,6 @@ if (typeof Array.orderedInsert !== "function") {
 	 * @param {Array} arr
 	 * @param {*} obj
 	 * @param {function(?, ?)} comparator
-	 * @return {boolean}
 	 */
 	
 	Array.orderedInsert = function (arr, obj, comparator) {
@@ -1607,7 +1606,7 @@ StandardTokenizer.prototype.parse = function (value, field) {
  * @enum
  */
 
-StandardTokenizerState = {
+var StandardTokenizerState = {
 	UNKNOWN : 0,
 	STRING : 1,
 	INT : 2,
@@ -1940,7 +1939,7 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 	var startKey = JSON.stringify([field, startTerm]),
 		endKey = JSON.stringify([field, endTerm]),
 		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd),
-		i, il
+		i, il,
 		stream = new Stream();
 
 	stream.pause();             //allow caller to attach to stream	
@@ -2565,18 +2564,20 @@ FilterScorer.prototype.onWrite = function (doc) {
  */
 
 FilterScorer.prototype.onBulkWrite = function (docs) {
-	var x, xl 
-	boost = this._query.boost;
+	var x, xl,
+		filter = this._query.filter,
+		boost = this._query.boost,
+		result = [];
 	
-	docs = docs.filter(this._query.filter);
 	for (x = 0, xl = docs.length; x < xl; ++x) {
 		if (filter(docs[x])) {
 			docs[x].score *= boost;
 			docs[x].sumOfSquaredWeights *= boost * boost;
+			result[result.length] = docs[x];
 		}
 	}
 	
-	this.emitBulk(docs);
+	this.emitBulk(result);
 };
 
 
@@ -3221,7 +3222,8 @@ TermScorer.prototype.onWrite = function (termVec) {
  */
 
 TermScorer.prototype.onBulkWrite = function (termVecs) {
-	var similarity = this._similarity,
+	var x, xl,
+		similarity = this._similarity,
 		termVec, doc, idf,
 		docs = new Array(termVecs.length);
 	

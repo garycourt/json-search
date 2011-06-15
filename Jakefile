@@ -7,8 +7,9 @@ var srcDir = './src/';
 var codeDirs = [srcDir, srcDir + 'util/', srcDir + 'analysis/', srcDir + 'analysis/porter/', srcDir + 'analysis/standard/', srcDir + 'index/', srcDir + 'search/', srcDir + 'parser/'];
 var codeOutput = 'json-search.js';
 var interfaceDirs = [srcDir + 'interface/'];
-var interfaceOutput = 'externs.js';
+var interfaceOutput = 'interface.js';
 var compressOutput = 'json-search.min.js';
+var externs = 'externs.js';
 
 /**
  * Default Task
@@ -112,16 +113,20 @@ task('compress', function () {
 	var args = [
 		'-jar',
 		'./lib/closure/compiler.jar',
-		'--js',
-		codeOutput,
+		'--externs',
+		externs,
 		'--externs',
 		interfaceOutput,
+		'--js',
+		codeOutput,
 		'--js_output_file',
 		compressOutput,
 		'--compilation_level',
 		'SIMPLE_OPTIMIZATIONS',
 		'--language_in',
 		'ECMASCRIPT3',
+		//'--warning_level',
+		//'VERBOSE',
 		'--jscomp_warning',
 		'accessControls',
 		'--jscomp_warning',

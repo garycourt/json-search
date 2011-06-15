@@ -118,7 +118,8 @@ TermScorer.prototype.onWrite = function (termVec) {
  */
 
 TermScorer.prototype.onBulkWrite = function (termVecs) {
-	var similarity = this._similarity,
+	var x, xl,
+		similarity = this._similarity,
 		termVec, doc, idf,
 		docs = new Array(termVecs.length);
 	

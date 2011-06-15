@@ -120,18 +120,20 @@ FilterScorer.prototype.onWrite = function (doc) {
  */
 
 FilterScorer.prototype.onBulkWrite = function (docs) {
-	var x, xl 
-	boost = this._query.boost;
+	var x, xl,
+		filter = this._query.filter,
+		boost = this._query.boost,
+		result = [];
 	
-	docs = docs.filter(this._query.filter);
 	for (x = 0, xl = docs.length; x < xl; ++x) {
 		if (filter(docs[x])) {
 			docs[x].score *= boost;
 			docs[x].sumOfSquaredWeights *= boost * boost;
+			result[result.length] = docs[x];
 		}
 	}
 	
-	this.emitBulk(docs);
+	this.emitBulk(result);
 };
 
 

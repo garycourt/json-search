@@ -106,7 +106,6 @@ if (typeof Array.orderedInsert !== "function") {
 	 * @param {Array} arr
 	 * @param {*} obj
 	 * @param {function(?, ?)} comparator
-	 * @return {boolean}
 	 */
 	
 	Array.orderedInsert = function (arr, obj, comparator) {

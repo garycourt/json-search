@@ -205,7 +205,7 @@ MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm,
 	var startKey = JSON.stringify([field, startTerm]),
 		endKey = JSON.stringify([field, endTerm]),
 		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd),
-		i, il
+		i, il,
 		stream = new Stream();
 
 	stream.pause();             //allow caller to attach to stream	

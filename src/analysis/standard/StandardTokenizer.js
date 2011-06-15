@@ -133,7 +133,7 @@ StandardTokenizer.prototype.parse = function (value, field) {
  * @enum
  */
 
-StandardTokenizerState = {
+var StandardTokenizerState = {
 	UNKNOWN : 0,
 	STRING : 1,
 	INT : 2,
