@@ -15,6 +15,26 @@ function PhraseQuery(field, terms, slop, boost) {
 };
 
 /**
+ * @param {FieldName} [field]
+ * @param {Array.<Token>} [tokens]
+ * @param {number} [slop]
+ * @param {number} [boost]
+ * @return {PhraseQuery}
+ */
+
+PhraseQuery.createFromTokens = function (field, tokens, slop, boost) {
+	var x, xl, p, terms = [];
+	tokens = tokens || [];
+	
+	for (x = 0, xl = tokens.length, p = -1; x < xl; ++x) {
+		p += tokens[x].positionIncrement;
+		terms[p] = tokens[x].value;
+	}
+	
+	return new PhraseQuery(field, terms, slop, boost);
+};
+
+/**
  * @type {FieldName}
  */
 

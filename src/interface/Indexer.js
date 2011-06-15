@@ -1,11 +1,20 @@
 /**
  * @interface
+ * @extends {Analyzer}
  */
 
 function Indexer() {};
 
 /**
- * @param {Object} doc
+ * @param {string} value
+ * @param {FieldName} [field]
+ * @return {Array.<Token>}
+ */
+
+Indexer.prototype.tokenize = function (value, field) {};
+
+/**
+ * @param {*} doc
  * @param {DocumentID} id
  * @return {Array.<TermVector>}
  */

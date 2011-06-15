@@ -12,17 +12,24 @@ function QueryParser() {}
 QueryParser.impl;
 
 /**
+ * @type {Analyzer}
+ */
+
+QueryParser.defaultAnalyzer = new StandardAnalyzer();
+
+/**
  * @param {string} str
  * @param {string|null} [defaultField]
+ * @param {Analyzer} [analyzer]
  * @return {Query}
  * @throws {SyntaxError}
  */
 
-QueryParser.parse = function (str, defaultField) {
+QueryParser.parse = function (str, defaultField, analyzer) {
 	var query, oldQuery;
 	
 	//extract query from query string
-	query = QueryParser.impl.parse(str, undefined, defaultField || null);
+	query = QueryParser.impl.parse(str, undefined, defaultField || null, analyzer || QueryParser.defaultAnalyzer);
 	
 	//optimize query
 	do {

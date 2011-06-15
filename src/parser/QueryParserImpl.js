@@ -729,110 +729,64 @@ QueryParser.impl = (function(){
           }
         }
         if (result2 !== null) {
-          var result3 = parse_SKIP();
+          var result3 = [];
+          if (input.substr(pos).match(/^[^"]/) !== null) {
+            var result9 = input.charAt(pos);
+            pos++;
+          } else {
+            var result9 = null;
+            if (reportMatchFailures) {
+              matchFailed("[^\"]");
+            }
+          }
+          while (result9 !== null) {
+            result3.push(result9);
+            if (input.substr(pos).match(/^[^"]/) !== null) {
+              var result9 = input.charAt(pos);
+              pos++;
+            } else {
+              var result9 = null;
+              if (reportMatchFailures) {
+                matchFailed("[^\"]");
+              }
+            }
+          }
           if (result3 !== null) {
-            var result4 = parse_Term();
+            if (input.substr(pos, 1) === "\"") {
+              var result4 = "\"";
+              pos += 1;
+            } else {
+              var result4 = null;
+              if (reportMatchFailures) {
+                matchFailed("\"\\\"\"");
+              }
+            }
             if (result4 !== null) {
-              var result5 = [];
-              var savedPos2 = pos;
-              var result15 = parse_WHITESPACE();
-              if (result15 !== null) {
-                var result13 = [];
-                while (result15 !== null) {
-                  result13.push(result15);
-                  var result15 = parse_WHITESPACE();
+              var savedPos1 = pos;
+              if (input.substr(pos, 1) === "~") {
+                var result7 = "~";
+                pos += 1;
+              } else {
+                var result7 = null;
+                if (reportMatchFailures) {
+                  matchFailed("\"~\"");
+                }
+              }
+              if (result7 !== null) {
+                var result8 = parse_Number();
+                if (result8 !== null) {
+                  var result6 = [result7, result8];
+                } else {
+                  var result6 = null;
+                  pos = savedPos1;
                 }
               } else {
-                var result13 = null;
+                var result6 = null;
+                pos = savedPos1;
               }
-              if (result13 !== null) {
-                var result14 = parse_Term();
-                if (result14 !== null) {
-                  var result12 = [result13, result14];
-                } else {
-                  var result12 = null;
-                  pos = savedPos2;
-                }
-              } else {
-                var result12 = null;
-                pos = savedPos2;
-              }
-              while (result12 !== null) {
-                result5.push(result12);
-                var savedPos2 = pos;
-                var result15 = parse_WHITESPACE();
-                if (result15 !== null) {
-                  var result13 = [];
-                  while (result15 !== null) {
-                    result13.push(result15);
-                    var result15 = parse_WHITESPACE();
-                  }
-                } else {
-                  var result13 = null;
-                }
-                if (result13 !== null) {
-                  var result14 = parse_Term();
-                  if (result14 !== null) {
-                    var result12 = [result13, result14];
-                  } else {
-                    var result12 = null;
-                    pos = savedPos2;
-                  }
-                } else {
-                  var result12 = null;
-                  pos = savedPos2;
-                }
-              }
+              var result5 = result6 !== null ? result6 : '';
               if (result5 !== null) {
-                var result6 = parse_SKIP();
-                if (result6 !== null) {
-                  if (input.substr(pos, 1) === "\"") {
-                    var result7 = "\"";
-                    pos += 1;
-                  } else {
-                    var result7 = null;
-                    if (reportMatchFailures) {
-                      matchFailed("\"\\\"\"");
-                    }
-                  }
-                  if (result7 !== null) {
-                    var savedPos1 = pos;
-                    if (input.substr(pos, 1) === "~") {
-                      var result10 = "~";
-                      pos += 1;
-                    } else {
-                      var result10 = null;
-                      if (reportMatchFailures) {
-                        matchFailed("\"~\"");
-                      }
-                    }
-                    if (result10 !== null) {
-                      var result11 = parse_Number();
-                      if (result11 !== null) {
-                        var result9 = [result10, result11];
-                      } else {
-                        var result9 = null;
-                        pos = savedPos1;
-                      }
-                    } else {
-                      var result9 = null;
-                      pos = savedPos1;
-                    }
-                    var result8 = result9 !== null ? result9 : '';
-                    if (result8 !== null) {
-                      var result1 = [result2, result3, result4, result5, result6, result7, result8];
-                    } else {
-                      var result1 = null;
-                      pos = savedPos0;
-                    }
-                  } else {
-                    var result1 = null;
-                    pos = savedPos0;
-                  }
-                } else {
-                  var result1 = null;
-                  pos = savedPos0;
-                }
+                var result1 = [result2, result3, result4, result5];
               } else {
                 var result1 = null;
                 pos = savedPos0;
@@ -850,15 +804,9 @@ QueryParser.impl = (function(){
           pos = savedPos0;
         }
         var result0 = result1 !== null
-          ? (function(startTerm, otherTerms, slop) {
-            var phrase = [ startTerm ];
-            if (otherTerms) {
-              for (var x = 0, xl = otherTerms.length; x < xl; ++x) {
-                phrase.push(otherTerms[x][1]);
-              }
-            }
-            return {phrase:phrase, slop:(slop ? slop[1] : 0)};
-          })(result1[2], result1[3], result1[6])
+          ? (function(phrase, slop) {
+            return {phrase:(phrase && phrase.length ? phrase.join("") : []), slop:(slop ? slop[1] : 0)};
+          })(result1[1], result1[3])
           : null;
         
         
@@ -941,13 +889,22 @@ QueryParser.impl = (function(){
             field = field ? field[0] : defaultField;
             
             if (term.phrase) {
-              return new PhraseQuery(field, term.phrase, term.slop, boost);
+              return PhraseQuery.createFromTokens(field, analyzer.tokenize(term.phrase, field), term.slop, boost);
             } else if (term.startTerm) {
               return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
             } else if (term.prefix) {
               return new PrefixQuery(field, term.prefix, boost);
             } else {
-              return new TermQuery(field, term.term, boost);
+              var tokens = analyzer.tokenize(term.term, field);
+              if (tokens.length === 1) {
+                return new TermQuery(field, tokens[0].value, boost);
+              } else if (tokens.length > 1) {
+                var terms = [];
+                for (var x = 0, xl = tokens.length; x < xl; ++x) {
+                  terms[x] = tokens[x].value;
+                }
+                return new MultiTermQuery(field, terms, false, boost);
+              }
             }
           })(result1[0], result1[1], result1[2])
           : null;
@@ -1031,7 +988,7 @@ QueryParser.impl = (function(){
               occur = Occur.SHOULD;
             }
             
-            return new BooleanClause(query, occur);
+            return query && new BooleanClause(query, occur);
           })(result1[0], result1[1])
           : null;
         
@@ -1118,10 +1075,12 @@ QueryParser.impl = (function(){
         }
         var result0 = result1 !== null
           ? (function(clause, otherClauses) {
-            var result = [ clause ];
+            var result = (clause ? [ clause ] : []);
             if (otherClauses) {
               for (var x = 0, xl = otherClauses.length; x < xl; ++x) {
-                result[result.length] = otherClauses[x][1];
+                if (otherClauses[x][1]) {
+                  result[result.length] = otherClauses[x][1];
+                }
               }
             }
             return new BooleanQuery(result);
@@ -1315,9 +1274,105 @@ QueryParser.impl = (function(){
       
       
       
-    var defaultField = arguments[2] || null;
+/*
+      
+  function BooleanClause(query, occur) {
+      
+    this.query = query;
+      
+    this.occur = occur || Occur.SHOULD;
+      
+  };
+      
+
+      
+  function BooleanQuery(clauses, minimumOptionalMatches, boost) {
+      
+    this.clauses = clauses || [];
+      
+    this.minimumOptionalMatches = minimumOptionalMatches || 0;
+      
+    this.boost = boost || 1.0;
+      
+  };
       
   
+      
+  var Occur = {
+      
+    MUST : 1,
+      
+    SHOULD : 0,
+      
+    MUST_NOT : -1
+      
+  };
+      
+
+      
+  function PhraseQuery(field, terms, slop, boost) {
+      
+    this.field = field || null;
+      
+    this.terms = terms || [];
+      
+    this.slop = slop || 0;
+      
+    this.boost = boost || 1.0;
+      
+  };
+      
+
+      
+  function PrefixQuery(field, prefix, boost) {
+      
+    this.field = field || null;
+      
+    this.prefix = prefix;
+      
+    this.boost = boost || 1.0;
+      
+  };
+      
+
+      
+  function TermQuery(field, term, boost) {
+      
+    this.field = field || null;
+      
+    this.term = term;
+      
+    this.boost = boost || 1.0;
+      
+  };
+      
+  
+      
+  function TermRangeQuery(field, startTerm, endTerm, excludeStart, excludeEnd, boost) {
+      
+    this.field = field || null;
+      
+    this.startTerm = startTerm;
+      
+    this.endTerm = endTerm;
+      
+    this.excludeStart = excludeStart || false;
+      
+    this.excludeEnd = excludeEnd || false;
+      
+    this.boost = boost || 1.0;
+      
+  };
+      
+*/
+      
+
+      
+  var defaultField = arguments[2] || null;
+      
+  var analyzer = arguments[3];  //must be available
+      
+
       
       var result = parseFunctions[startRule]();
       

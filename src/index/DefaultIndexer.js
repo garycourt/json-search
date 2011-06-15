@@ -1,14 +1,25 @@
 /**
  * @constructor
  * @implements {Indexer}
+ * @param {Analyzer} [analyzer]
  */
 
-function DefaultIndexer() {
-	this.analyzer = new StandardAnalyzer();
+function DefaultIndexer(analyzer) {
+	this.analyzer = analyzer || new StandardAnalyzer();
 };
 
 /**
- * @param {Object} doc
+ * @param {string} value
+ * @param {FieldName} [field]
+ * @return {Array.<Token>}
+ */
+
+DefaultIndexer.prototype.tokenize = function (value, field) {
+	return this.analyzer.tokenize(value);
+};
+
+/**
+ * @param {*} doc
  * @param {DocumentID} id
  * @param {FieldName} [field]
  * @return {Array.<TermVector>}
@@ -35,7 +46,7 @@ DefaultIndexer.prototype.index = function (doc, id, field) {
 		break;
 		
 	case 'string':
-		tokens = this.analyzer.tokenize(/** @type {string} */ (doc));
+		tokens = this.tokenize(/** @type {string} */ (doc), field);
 		entries = {};
 		
 		for (key = 0; key < tokens.length; ++key) {
