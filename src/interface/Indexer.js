@@ -6,6 +6,12 @@
 function Indexer() {};
 
 /**
+ * @type {FieldName}
+ */
+
+Indexer.prototype.defaultField;
+
+/**
  * @param {string} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}

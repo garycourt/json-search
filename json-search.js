@@ -1612,12 +1612,26 @@ StandardTokenizerState = {
 /**
  * @constructor
  * @implements {Indexer}
+ * @param {FieldName} [defaultField]
  * @param {Analyzer} [analyzer]
  */
 
-function DefaultIndexer(analyzer) {
+function DefaultIndexer(defaultField, analyzer) {
+	this.defaultField = defaultField || null;
 	this.analyzer = analyzer || new StandardAnalyzer();
 };
+
+/**
+ * @type {FieldName}
+ */
+
+DefaultIndexer.prototype.defaultField = null;
+
+/**
+ * @type {Analyzer}
+ */
+
+DefaultIndexer.prototype.analyzer;
 
 /**
  * @param {string} value
@@ -1720,12 +1734,17 @@ exports.DefaultIndexer = DefaultIndexer;
 /**
  * @constructor
  * @implements {Index}
+ * @param {Indexer} [indexer]
  */
 
-function MemoryIndex() {
+function MemoryIndex(indexer) {
 	this._docs = {};
 	this._index = {};
 	this._indexKeys = new ScapegoatTree();
+	
+	if (indexer) {
+		this._indexer = indexer;
+	}
 };
 
 /**
@@ -1876,6 +1895,14 @@ MemoryIndex.prototype.setIndexer = function (indexer, callback) {
 	if (callback) {
 		callback(null);
 	}
+};
+
+/**
+ * @param {function(PossibleError, Indexer)} callback
+ */
+
+MemoryIndex.prototype.getIndexer = function (callback) {
+	callback(null, this._indexer);
 };
 
 /**
@@ -3059,16 +3086,27 @@ Searcher.prototype._index;
 Searcher.prototype.similarity = new DefaultSimilarity();
 
 /**
- * @param {Query} query
+ * @param {Query|string} query
  * @param {number} max
  * @param {function(PossibleError, Array.<DocumentTerms>=)} callback
  */
 
 Searcher.prototype.search = function (query, max, callback) {
-	var collector, normQuery;
-	collector = new TopDocumentsCollector(max, callback);
-	normQuery = new NormalizedQuery(query);
-	normQuery.score(this.similarity, this._index).pipe(collector);
+	var self = this, collector, normQuery;
+	
+	if (typeof query === "string") {
+		this._index.getIndexer(function (err, indexer) {
+			if (!err) {
+				self.search(QueryParser.parse(/** @type {string} */ (query), indexer.defaultField, indexer), max, callback);
+			} else {
+				callback(err);
+			}
+		});
+	} else {
+		collector = new TopDocumentsCollector(max, callback);
+		normQuery = new NormalizedQuery(query);
+		normQuery.score(this.similarity, this._index).pipe(collector);
+	}
 };
 
 

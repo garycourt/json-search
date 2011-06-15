@@ -49,6 +49,12 @@ Index.prototype.getDocument = function (id, callback) {};
 Index.prototype.setIndexer = function (indexer, callback) {};
 
 /**
+ * @param {function(PossibleError, Indexer)} callback
+ */
+
+Index.prototype.getIndexer = function (callback) {};
+
+/**
  * @param {FieldName} field
  * @param {Term} term
  * @return {Stream}
@@ -75,6 +81,12 @@ Index.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart
  */
 
 function Indexer() {};
+
+/**
+ * @type {FieldName}
+ */
+
+Indexer.prototype.defaultField;
 
 /**
  * @param {string} value

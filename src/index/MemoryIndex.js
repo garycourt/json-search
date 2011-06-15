@@ -1,12 +1,17 @@
 /**
  * @constructor
  * @implements {Index}
+ * @param {Indexer} [indexer]
  */
 
-function MemoryIndex() {
+function MemoryIndex(indexer) {
 	this._docs = {};
 	this._index = {};
 	this._indexKeys = new ScapegoatTree();
+	
+	if (indexer) {
+		this._indexer = indexer;
+	}
 };
 
 /**
@@ -157,6 +162,14 @@ MemoryIndex.prototype.setIndexer = function (indexer, callback) {
 	if (callback) {
 		callback(null);
 	}
+};
+
+/**
+ * @param {function(PossibleError, Indexer)} callback
+ */
+
+MemoryIndex.prototype.getIndexer = function (callback) {
+	callback(null, this._indexer);
 };
 
 /**

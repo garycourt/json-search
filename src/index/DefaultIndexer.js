@@ -1,12 +1,26 @@
 /**
  * @constructor
  * @implements {Indexer}
+ * @param {FieldName} [defaultField]
  * @param {Analyzer} [analyzer]
  */
 
-function DefaultIndexer(analyzer) {
+function DefaultIndexer(defaultField, analyzer) {
+	this.defaultField = defaultField || null;
 	this.analyzer = analyzer || new StandardAnalyzer();
 };
+
+/**
+ * @type {FieldName}
+ */
+
+DefaultIndexer.prototype.defaultField = null;
+
+/**
+ * @type {Analyzer}
+ */
+
+DefaultIndexer.prototype.analyzer;
 
 /**
  * @param {string} value
