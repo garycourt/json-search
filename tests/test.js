@@ -4,7 +4,7 @@
 
 //console.profile();
 
-var index = new MemoryIndex();
+var index = new JSONSearch.MemoryIndex();
 
 index.addDocument({
 	title : "JavaScript",
@@ -42,10 +42,10 @@ index.addDocument({
  * Searcher
  */
 
-var searcher = new Searcher(index);
+var searcher = new JSONSearch.Searcher(index);
 
 function testTermSearch(field, term) {
-	searcher.search(new TermQuery(field, term), 10, function (err, docs) {
+	searcher.search(new JSONSearch.TermQuery(field, term), 10, function (err, docs) {
 		if (!err) {
 			console.log(docs);
 		} else {
@@ -56,7 +56,7 @@ function testTermSearch(field, term) {
 
 function testBooleanSearch(clauses) {
 	//console.profile();
-	searcher.search(new BooleanQuery(clauses), 10, function (err, docs) {
+	searcher.search(new JSONSearch.BooleanQuery(clauses), 10, function (err, docs) {
 		if (!err) {
 			console.log(docs);
 		} else {
@@ -67,11 +67,11 @@ function testBooleanSearch(clauses) {
 }
 
 function termQueryBooleanClause(field, term, occur) {
-	return new BooleanClause(new TermQuery(field, term), occur);
+	return new JSONSearch.BooleanClause(new JSONSearch.TermQuery(field, term), occur);
 }
 
 function testQueryStringSearch(qs, defaultField) {
-	searcher.search(QueryParser.parse(qs, defaultField), 10, function (err, docs) {
+	searcher.search(JSONSearch.QueryParser.parse(qs, defaultField), 10, function (err, docs) {
 		if (!err) {
 			console.log(docs);
 		} else {
@@ -87,6 +87,6 @@ function testQueryStringSearch(qs, defaultField) {
 //testTermSearch("body", "test");
 
 testBooleanSearch([
-	termQueryBooleanClause("body", "dynamic", Occur.MUST), 
-	termQueryBooleanClause("body", "compiled", Occur.MUST_NOT)
+	termQueryBooleanClause("body", "dynamic", JSONSearch.Occur.MUST), 
+	termQueryBooleanClause("body", "compiled", JSONSearch.Occur.MUST_NOT)
 ]);

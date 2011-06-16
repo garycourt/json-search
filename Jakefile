@@ -16,7 +16,7 @@ var externs = 'externs.js';
  */
 
 desc('This is the default task.');
-task({'default' : ['compile', 'compress']}, function () {});
+task({'default' : ['compile', 'compress', 'wrap']}, function () {});
 
 /**
  * Compile QueryParser Task
@@ -51,7 +51,8 @@ function compileFiles(files, output, callback) {
 			return callback(err);
 		}
 	
-		fs.writeFile(output, fileContents.join("\n\n"), function (err) {
+		var content = fileContents.join("\n\n");
+		fs.writeFile(output, content, function (err) {
 			if (err) {
 				console.error('Compiled failed during writeFile');
 			}
@@ -180,4 +181,42 @@ task('compress', function () {
 	
 	closure.stdout.on('data', process.stdout.write.bind(process.stdout));
 	closure.stderr.on('data', process.stderr.write.bind(process.stderr));
+}, true);
+
+/**
+ * Wrap task
+ */
+
+desc('Wraps compiled files in a function.');
+task('wrap', function () {
+	async.parallel([
+		function (callback) {
+			//rewrite module
+			fs.readFile(codeOutput, function (err, data) {
+				if (!err) {
+					fs.writeFile(codeOutput, 'var JSONSearch = (function () {\n\n' + data + '\n\nreturn exports;\n}());', callback);
+				} else {
+					callback(err);
+				}
+			});
+		},
+		function (callback) {
+			//rewrite compressed module
+			fs.readFile(compressOutput, function (err, data) {
+				if (!err) {
+					fs.writeFile(compressOutput, 'JSONSearch=function(){' + data + ';return exports}()', callback);
+				} else {
+					callback(err);
+				}
+			});
+		}
+	], function (err) {
+		if (!err) {
+			console.log('Wrapper successful');
+			complete();
+		} else {
+			fail(err);
+			console.log('Wrapper failed');
+		}
+	});
 }, true);

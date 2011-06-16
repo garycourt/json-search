@@ -39,3 +39,6 @@ QueryParser.parse = function (str, defaultField, analyzer) {
 	
 	return query;
 };
+
+
+exports.QueryParser = QueryParser;

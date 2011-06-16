@@ -181,41 +181,21 @@ MemoryIndex.prototype.getIndexer = function (callback) {
 MemoryIndex.prototype.getTermVectors = function (field, term) {
 	var key = JSON.stringify([field, term]),
 		entries = this._index[key] || [],
-		self = this,
+		freq = entries.length,
+		total = this._docCount,
+		x, xl,
 		stream = new Stream();
-		
+	
+	for (x = 0, xl = entries.length; x < xl; ++x) {
+		entries[x].documentFrequency = freq;
+		entries[x].totalDocuments = total;
+	}
+	
 	stream.pause();             //allow caller to attach to stream
 	stream.bulkWrite(entries);  //buffered
 	stream.end();               //buffered
 	stream.resume();            //asynchronous
 	
-	return stream;
-};
-
-/**
- * @param {FieldName} field
- * @param {Term} startTerm
- * @param {Term} endTerm
- * @param {boolean} [excludeStart]
- * @param {boolean} [excludeEnd]
- * @return {Stream}
- */
-
-MemoryIndex.prototype.getTermRangeVectors = function (field, startTerm, endTerm, excludeStart, excludeEnd) {
-	var startKey = JSON.stringify([field, startTerm]),
-		endKey = JSON.stringify([field, endTerm]),
-		keys = this._indexKeys.range(startKey, endKey, excludeStart, excludeEnd),
-		i, il,
-		stream = new Stream();
-
-	stream.pause();             //allow caller to attach to stream	
-
-	for (i = 0, il = keys.length; i < il; ++i) {
-		stream.bulkWrite(this._index[keys[i]]);  //buffered
-	}
-	
-	stream.end();               //buffered
-	stream.resume();            //asynchronous
 	return stream;
 };
 

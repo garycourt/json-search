@@ -34,5 +34,5 @@ var Occur = {
 };
 
 
-exports.BooleanQuery = BooleanQuery;
+exports.BooleanClause = BooleanClause;
 exports.Occur = Occur;
