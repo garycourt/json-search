@@ -27,12 +27,26 @@ PorterFilter.prototype.analyzer;
  */
 
 PorterFilter.prototype.parse = function (value, field) {
-	var x, xl, result = this.analyzer.parse(value, field);
-	for (x = 0, xl = result.length; x < xl; ++x) {
-		if (typeof result[x].value === "string") {
-			result[x].value = porterStem(result[x].value);
+	var x, xl, 
+		result = [],
+		tokens = this.analyzer.parse(value, field),
+		stemmed;
+	
+	for (x = 0, xl = tokens.length; x < xl; ++x) {
+		result[result.length] = tokens[x];
+		if (typeof tokens[x].value === "string") {
+			stemmed = porterStem(tokens[x].value);
+			if (stemmed !== tokens[x].value) {
+				result[result.length] = /** @type {Token} */ ({
+					value : stemmed,
+					startOffset : tokens[x].startOffset,
+					endOffset : tokens[x].endOffset,
+					positionIncrement : 0
+				});
+			}
 		}
 	}
+	
 	return result;
 };
 

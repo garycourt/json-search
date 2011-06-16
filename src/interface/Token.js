@@ -5,7 +5,7 @@
 function Token() {};
 
 /**
- * @type {Term|undefined}
+ * @type {Term}
  */
 
 Token.prototype.value;

@@ -271,7 +271,7 @@ TermVector.prototype.totalDocuments;
 function Token() {};
 
 /**
- * @type {Term|undefined}
+ * @type {Term}
  */
 
 Token.prototype.value;

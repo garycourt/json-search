@@ -1251,12 +1251,26 @@ PorterFilter.prototype.analyzer;
  */
 
 PorterFilter.prototype.parse = function (value, field) {
-	var x, xl, result = this.analyzer.parse(value, field);
-	for (x = 0, xl = result.length; x < xl; ++x) {
-		if (typeof result[x].value === "string") {
-			result[x].value = porterStem(result[x].value);
+	var x, xl, 
+		result = [],
+		tokens = this.analyzer.parse(value, field),
+		stemmed;
+	
+	for (x = 0, xl = tokens.length; x < xl; ++x) {
+		result[result.length] = tokens[x];
+		if (typeof tokens[x].value === "string") {
+			stemmed = porterStem(tokens[x].value);
+			if (stemmed !== tokens[x].value) {
+				result[result.length] = /** @type {Token} */ ({
+					value : stemmed,
+					startOffset : tokens[x].startOffset,
+					endOffset : tokens[x].endOffset,
+					positionIncrement : 0
+				});
+			}
 		}
 	}
+	
 	return result;
 };
 
@@ -2280,7 +2294,9 @@ BooleanScorer.prototype.match = function () {
 BooleanScorer.prototype.onResume = function () {
 	var self = this;
 	setTimeout(function () {
-		self.match();
+		if (self._collectorCount > 0) {
+			self.match();
+		}
 	}, 0);
 };
 
@@ -2829,36 +2845,16 @@ NormalizedScorer.prototype.onBulkWrite = function (docs) {
  * @constructor
  * @implements {Query}
  * @param {FieldName} [field]
- * @param {Array.<Term|undefined>} [terms]
- * @param {number} [slop]
- * @param {number} [boost]
- */
-
-function PhraseQuery(field, terms, slop, boost) {
-	this.field = field || null;
-	this.terms = terms || [];
-	this.slop = slop || 0;
-	this.boost = boost || 1.0;
-};
-
-/**
- * @param {FieldName} [field]
  * @param {Array.<Token>} [tokens]
  * @param {number} [slop]
  * @param {number} [boost]
- * @return {PhraseQuery}
  */
 
-PhraseQuery.createFromTokens = function (field, tokens, slop, boost) {
-	var x, xl, p, terms = [];
-	tokens = tokens || [];
-	
-	for (x = 0, xl = tokens.length, p = -1; x < xl; ++x) {
-		p += tokens[x].positionIncrement;
-		terms[p] = tokens[x].value;
-	}
-	
-	return new PhraseQuery(field, terms, slop, boost);
+function PhraseQuery(field, tokens, slop, boost) {
+	this.field = field || null;
+	this.tokens = tokens || [];
+	this.slop = slop || 0;
+	this.boost = boost || 1.0;
 };
 
 /**
@@ -2868,10 +2864,10 @@ PhraseQuery.createFromTokens = function (field, tokens, slop, boost) {
 PhraseQuery.prototype.field = null;
 
 /**
- * @type {Array.<Term|undefined>}
+ * @type {Array.<Token>}
  */
 
-PhraseQuery.prototype.terms;
+PhraseQuery.prototype.tokens;
 
 /**
  * @type {number}
@@ -2895,10 +2891,8 @@ PhraseQuery.prototype.score = function (similarity, index) {
 	var stream = new PhraseFilter(this),
 		x, xl, terms = [];
 	
-	for (x = 0, xl = this.terms.length; x < xl; ++x) {
-		if (typeof this.terms[x] !== "undefined") {
-			terms[terms.length] = this.terms[x];
-		}
+	for (x = 0, xl = this.tokens.length; x < xl; ++x) {
+		terms[terms.length] = this.tokens[x].value;
 	}
 	
 	(new MultiTermQuery(this.field, terms, true, this.boost)).score(similarity, index).pipe(stream);
@@ -2911,13 +2905,11 @@ PhraseQuery.prototype.score = function (similarity, index) {
 
 PhraseQuery.prototype.extractTerms = function () {
 	var x, xl, terms = [];
-	for (x = 0, xl = this.terms.length; x < xl; ++x) {
-		if (typeof this.terms[x] !== "undefined") {
-			terms.push(/** @type {TermVector} */ ({
-				term : this.terms[x],
-				field : this.field
-			}));
-		}
+	for (x = 0, xl = this.tokens.length; x < xl; ++x) {
+		terms.push(/** @type {TermVector} */ ({
+			term : this.tokens[x].value,
+			field : this.field
+		}));
 	}
 	return terms;
 };
@@ -2927,10 +2919,8 @@ PhraseQuery.prototype.extractTerms = function () {
  */
 
 PhraseQuery.prototype.rewrite = function () {
-	//TODO: Remove useless undefineds from start/end of array
-	
-	if (this.terms.length === 1 && typeof this.terms[0] !== "undefined") {
-		return new TermQuery(this.field, /** @type {string} */ (this.terms[0]), this.boost);
+	if (this.tokens.length === 1) {
+		return new TermQuery(this.field, this.tokens[0].value, this.boost);
 	}
 	//else
 	return this;
@@ -2964,11 +2954,12 @@ PhraseFilter.prototype._query;
 
 PhraseFilter.prototype.onWrite = function (doc) {
 	var x, xl, y, yl, z, zl,
-		phrase = this._query.terms,
+		phrase = this._query.tokens,
 		slop = this._query.slop,
 		termVecs = doc.terms, 
 		termPositions = {},
-		positions,
+		firstTermPositions,
+		position,
 		minOffset,
 		maxOffset,
 		sibPositions;
@@ -2982,27 +2973,27 @@ PhraseFilter.prototype.onWrite = function (doc) {
 	}
 	
 	//use the first term in the phrase as the offset to compare to
-	positions = termPositions[phrase[0]];
+	firstTermPositions = termPositions[phrase[0].value];
 	
 	//for each position of the first term
-	for (x = 0, xl = positions.length; x < xl; ++x) {
+	for (x = 0, xl = firstTermPositions.length; x < xl; ++x) {
+		position = 0;
 		//for each other term
 		for (y = 1, yl = phrase.length; y < yl; ++y) {
-			if (typeof phrase[y] !== "undefined") {
-				minOffset = positions[x] + y - slop;
-				maxOffset = positions[x] + y + slop;
-				sibPositions = termPositions[phrase[y]];
-				//for each position of the other term
-				for (z = 0, zl = sibPositions.length; z < zl; ++z) {
-					//if the position of the other term is within the sloppy offset, we have a match
-					if (sibPositions[z] >= minOffset && sibPositions[z] <= maxOffset) {
-						break;
-					}
-				}
-				//if the above loop completed without breaking, the term was not within the offset
-				if (z >= zl) {
+			position += phrase[y].positionIncrement;
+			minOffset = firstTermPositions[x] + position - slop;
+			maxOffset = firstTermPositions[x] + position + slop;
+			sibPositions = termPositions[phrase[y].value];
+			//for each position of the other term
+			for (z = 0, zl = sibPositions.length; z < zl; ++z) {
+				//if the position of the other term is within the sloppy offset, we have a match
+				if (sibPositions[z] >= minOffset && sibPositions[z] <= maxOffset) {
 					break;
 				}
+			}
+			//if the above loop completed without breaking, the term was not within the offset
+			if (z >= zl) {
+				break;
 			}
 		}
 		//if the above loop completed without breaking, we found a doc that matches the phrase
@@ -4407,7 +4398,7 @@ QueryParser.impl = (function(){
             field = field ? field[0] : defaultField;
             
             if (term.phrase) {
-              return PhraseQuery.createFromTokens(field, analyzer.parse(term.phrase, field), term.slop, boost);
+              return new PhraseQuery(field, analyzer.parse(term.phrase, field), term.slop, boost);
             } else if (term.startTerm) {
               return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
             } else if (term.prefix) {

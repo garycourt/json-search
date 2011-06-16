@@ -241,7 +241,9 @@ BooleanScorer.prototype.match = function () {
 BooleanScorer.prototype.onResume = function () {
 	var self = this;
 	setTimeout(function () {
-		self.match();
+		if (self._collectorCount > 0) {
+			self.match();
+		}
 	}, 0);
 };
 

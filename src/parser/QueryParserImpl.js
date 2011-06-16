@@ -889,7 +889,7 @@ QueryParser.impl = (function(){
             field = field ? field[0] : defaultField;
             
             if (term.phrase) {
-              return PhraseQuery.createFromTokens(field, analyzer.parse(term.phrase, field), term.slop, boost);
+              return new PhraseQuery(field, analyzer.parse(term.phrase, field), term.slop, boost);
             } else if (term.startTerm) {
               return new TermRangeQuery(field, term.startTerm, term.endTerm, term.excludeStart, term.excludeEnd, boost);
             } else if (term.prefix) {
