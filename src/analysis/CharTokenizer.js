@@ -15,7 +15,7 @@ function CharTokenizer(regexp) {
 CharTokenizer.prototype.regexp;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -27,30 +27,37 @@ CharTokenizer.prototype.parse = function (value, field) {
 		startOffset = 0, 
 		result = [];
 	
-	for (x = 0, xl = value.length; x < xl; ++x) {
-		if (regexp.test(value[x])) {
-			word += value[x];
-		} else {
-			if (word.length) {
-				result[result.length] = /** @type {Token} */ ({
-					value : word,
-					startOffset : startOffset,
-					endOffset : x,
-					positionIncrement : 1
-				});
-				word = "";
+	if (typeof value === "string") {
+		for (x = 0, xl = value.length; x < xl; ++x) {
+			if (regexp.test(value[x])) {
+				word += value[x];
+			} else {
+				if (word.length) {
+					result[result.length] = /** @type {Token} */ ({
+						value : word,
+						startOffset : startOffset,
+						endOffset : x,
+						positionIncrement : 1
+					});
+					word = "";
+				}
+				startOffset = x + 1;
 			}
-			startOffset = x + 1;
 		}
-	}
-	
-	if (word.length) {
-		result[result.length] = /** @type {Token} */ ({
-			value : word,
-			startOffset : startOffset,
-			endOffset : value.length,
+		
+		if (word.length) {
+			result[result.length] = /** @type {Token} */ ({
+				value : word,
+				startOffset : startOffset,
+				endOffset : value.length,
+				positionIncrement : 1
+			});
+		}
+	} else {
+		result = [/** @type {Token} */ ({
+			value : value,
 			positionIncrement : 1
-		});
+		})];
 	}
 	
 	return result;

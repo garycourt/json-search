@@ -899,7 +899,7 @@ BaseFilter.prototype.filterer;
 BaseFilter.prototype.mapper;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -950,7 +950,7 @@ function CharTokenizer(regexp) {
 CharTokenizer.prototype.regexp;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -962,30 +962,37 @@ CharTokenizer.prototype.parse = function (value, field) {
 		startOffset = 0, 
 		result = [];
 	
-	for (x = 0, xl = value.length; x < xl; ++x) {
-		if (regexp.test(value[x])) {
-			word += value[x];
-		} else {
-			if (word.length) {
-				result[result.length] = /** @type {Token} */ ({
-					value : word,
-					startOffset : startOffset,
-					endOffset : x,
-					positionIncrement : 1
-				});
-				word = "";
+	if (typeof value === "string") {
+		for (x = 0, xl = value.length; x < xl; ++x) {
+			if (regexp.test(value[x])) {
+				word += value[x];
+			} else {
+				if (word.length) {
+					result[result.length] = /** @type {Token} */ ({
+						value : word,
+						startOffset : startOffset,
+						endOffset : x,
+						positionIncrement : 1
+					});
+					word = "";
+				}
+				startOffset = x + 1;
 			}
-			startOffset = x + 1;
 		}
-	}
-	
-	if (word.length) {
-		result[result.length] = /** @type {Token} */ ({
-			value : word,
-			startOffset : startOffset,
-			endOffset : value.length,
+		
+		if (word.length) {
+			result[result.length] = /** @type {Token} */ ({
+				value : word,
+				startOffset : startOffset,
+				endOffset : value.length,
+				positionIncrement : 1
+			});
+		}
+	} else {
+		result = [/** @type {Token} */ ({
+			value : value,
 			positionIncrement : 1
-		});
+		})];
 	}
 	
 	return result;
@@ -1026,18 +1033,25 @@ exports.LetterTokenizer = LetterTokenizer;
 function IDTokenizer() {};
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
 
 IDTokenizer.prototype.parse = function (value, field) {
-	return [ /** @type {Token} */ ({
-		value : value,
-		startOffset : 0,
-		endOffset : value.length,
-		positionIncrement : 1
-	}) ];
+	if (typeof value === "string") {
+		return [ /** @type {Token} */ ({
+			value : value,
+			startOffset : 0,
+			endOffset : value.length,
+			positionIncrement : 1
+		}) ];
+	} else {
+		return [ /** @type {Token} */ ({
+			value : value,
+			positionIncrement : 1
+		}) ];
+	}
 };
 
 
@@ -1076,7 +1090,7 @@ LengthFilter.prototype.min;
 LengthFilter.prototype.max;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1121,7 +1135,7 @@ function LowerCaseFilter(analyzer) {
 LowerCaseFilter.prototype.analyzer;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1181,7 +1195,7 @@ StopFilter.prototype.analyzer;
 StopFilter.prototype.stopWords;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1231,7 +1245,7 @@ function PorterFilter(analyzer) {
 PorterFilter.prototype.analyzer;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1459,7 +1473,7 @@ StandardAnalyzer.ENGLISH_STOP_WORDS = StopFilter.toHash(["a", "an", "and", "are"
 StandardAnalyzer.prototype.analyzer;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1505,7 +1519,7 @@ StandardTokenizer.DIGIT = /[0-9]/;
 StandardTokenizer.ALPHANUM = /[0-9A-Za-z]/;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -1518,84 +1532,91 @@ StandardTokenizer.prototype.parse = function (value, field) {
 		tokenReady = false,
 		result = [];
 	
-	for (x = 0, xl = value.length; x <= xl; ++x) {
-		chr = value[x];
-		
-		if (chr !== undefined) {
-			switch (state) {
-			case StandardTokenizerState.UNKNOWN:
-				if (StandardTokenizer.LETTER.test(chr)) {
-					state = StandardTokenizerState.STRING;
-					startOffset = x;
-					tokenValue = chr;
-				} else if (StandardTokenizer.DIGIT.test(chr)) {
-					state = StandardTokenizerState.INT;
-					startOffset = x;
-					tokenValue = chr;
-				}
-				break;
+	if (typeof value === "string") {
+		for (x = 0, xl = value.length; x <= xl; ++x) {
+			chr = value[x];
+			
+			if (chr !== undefined) {
+				switch (state) {
+				case StandardTokenizerState.UNKNOWN:
+					if (StandardTokenizer.LETTER.test(chr)) {
+						state = StandardTokenizerState.STRING;
+						startOffset = x;
+						tokenValue = chr;
+					} else if (StandardTokenizer.DIGIT.test(chr)) {
+						state = StandardTokenizerState.INT;
+						startOffset = x;
+						tokenValue = chr;
+					}
+					break;
+					
+				case StandardTokenizerState.STRING:
+					if (StandardTokenizer.ALPHANUM.test(chr)) {
+						tokenValue += chr;
+					} else if (!StandardTokenizer.SKIP_LETTER.test(chr)) {
+						tokenReady = true;  //word
+					}
+					break;
 				
-			case StandardTokenizerState.STRING:
-				if (StandardTokenizer.ALPHANUM.test(chr)) {
-					tokenValue += chr;
-				} else if (!StandardTokenizer.SKIP_LETTER.test(chr)) {
-					tokenReady = true;  //word
+				case StandardTokenizerState.INT:
+					if (StandardTokenizer.DIGIT.test(chr)) {
+						tokenValue += chr;
+					} else if (chr === ".") {
+						state = StandardTokenizerState.FLOAT;
+						tokenValue += chr;
+					} else if (StandardTokenizer.LETTER.test(chr)) {
+						state = StandardTokenizerState.STRING;
+						tokenValue += chr;
+					} else {
+						tokenReady = true;  //number
+						tokenValue = parseInt(tokenValue, 10);
+					}
+					break;
+				
+				case StandardTokenizerState.FLOAT:
+					if (StandardTokenizer.DIGIT.test(chr)) {
+						tokenValue += chr;
+					} else if (chr === "." || StandardTokenizer.LETTER.test(chr)) {
+						state = StandardTokenizerState.STRING;
+						tokenValue += chr;
+					} else {
+						tokenReady = true;  //number
+						tokenValue = parseFloat(tokenValue);
+					}
+					break;
 				}
-				break;
-			
-			case StandardTokenizerState.INT:
-				if (StandardTokenizer.DIGIT.test(chr)) {
-					tokenValue += chr;
-				} else if (chr === ".") {
-					state = StandardTokenizerState.FLOAT;
-					tokenValue += chr;
-				} else if (StandardTokenizer.LETTER.test(chr)) {
-					state = StandardTokenizerState.STRING;
-					tokenValue += chr;
-				} else {
-					tokenReady = true;  //number
-					tokenValue = parseInt(tokenValue, 10);
-				}
-				break;
-			
-			case StandardTokenizerState.FLOAT:
-				if (StandardTokenizer.DIGIT.test(chr)) {
-					tokenValue += chr;
-				} else if (chr === "." || StandardTokenizer.LETTER.test(chr)) {
-					state = StandardTokenizerState.STRING;
-					tokenValue += chr;
-				} else {
+			} else {  //end of string
+				switch (state) {
+				case StandardTokenizerState.STRING:
+					tokenReady = true; //word
+					break;
+					
+				case StandardTokenizerState.INT:
+				case StandardTokenizerState.FLOAT:
 					tokenReady = true;  //number
 					tokenValue = parseFloat(tokenValue);
+					break;
 				}
-				break;
 			}
-		} else {  //end of string
-			switch (state) {
-			case StandardTokenizerState.STRING:
-				tokenReady = true; //word
-				break;
-				
-			case StandardTokenizerState.INT:
-			case StandardTokenizerState.FLOAT:
-				tokenReady = true;  //number
-				tokenValue = parseFloat(tokenValue);
-				break;
-			}
-		}
-		
-		if (tokenReady) {
-			result[result.length] = /** @type {Token} */ ({
-				value : tokenValue,
-				startOffset : startOffset,
-				endOffset : x,
-				positionIncrement : 1
-			});
 			
-			state = StandardTokenizerState.UNKNOWN
-			tokenReady = false;
-			--x;  //reprocess character
+			if (tokenReady) {
+				result[result.length] = /** @type {Token} */ ({
+					value : tokenValue,
+					startOffset : startOffset,
+					endOffset : x,
+					positionIncrement : 1
+				});
+				
+				state = StandardTokenizerState.UNKNOWN
+				tokenReady = false;
+				--x;  //reprocess character
+			}
 		}
+	} else {
+		result = [/** @type {Token} */ ({
+			value : value,
+			positionIncrement : 1
+		})];
 	}
 	
 	return result;
@@ -1633,7 +1654,7 @@ function DefaultIndexer(analyzer) {
 DefaultIndexer.prototype.analyzer;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */

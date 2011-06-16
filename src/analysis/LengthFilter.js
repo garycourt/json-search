@@ -31,7 +31,7 @@ LengthFilter.prototype.min;
 LengthFilter.prototype.max;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */

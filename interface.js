@@ -5,7 +5,7 @@
 function Analyzer() {};
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -84,7 +84,7 @@ Index.prototype.getTermRange = function (field, startTerm, endTerm, excludeStart
 function Indexer() {};
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
@@ -271,19 +271,19 @@ TermVector.prototype.totalDocuments;
 function Token() {};
 
 /**
- * @type {string|undefined}
+ * @type {Term|undefined}
  */
 
 Token.prototype.value;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 Token.prototype.startOffset;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 Token.prototype.endOffset;

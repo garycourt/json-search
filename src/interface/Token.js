@@ -5,19 +5,19 @@
 function Token() {};
 
 /**
- * @type {string|undefined}
+ * @type {Term|undefined}
  */
 
 Token.prototype.value;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 Token.prototype.startOffset;
 
 /**
- * @type {number}
+ * @type {number|undefined}
  */
 
 Token.prototype.endOffset;

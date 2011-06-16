@@ -6,7 +6,7 @@
 function Indexer() {};
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */

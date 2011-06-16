@@ -40,7 +40,7 @@ StopFilter.prototype.analyzer;
 StopFilter.prototype.stopWords;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */

@@ -15,7 +15,7 @@ function LowerCaseFilter(analyzer) {
 LowerCaseFilter.prototype.analyzer;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */

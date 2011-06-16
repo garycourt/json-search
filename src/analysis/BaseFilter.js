@@ -31,7 +31,7 @@ BaseFilter.prototype.filterer;
 BaseFilter.prototype.mapper;
 
 /**
- * @param {string} value
+ * @param {Term} value
  * @param {FieldName} [field]
  * @return {Array.<Token>}
  */
