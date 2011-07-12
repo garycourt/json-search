@@ -1,0 +1,32 @@
+{
+	"name" : "json-search",
+	"version" : "0.1.0",
+	"description" : "An asynchronous full text indexing and searching library written in JavaScript, and is based off Lucene.",
+	"homepage" : "http://github.com/garycourt/json-search",
+	"author" : "Gary Court <gary.court@gmail.com>",
+	"licenses" : [
+		{
+			"type" : "BSD",
+			"url" : "http://github.com/garycourt/json-search"
+		}
+	],
+	"maintainers" : [
+		{
+			"name" : "Gary Court",
+			"email" : "gary.court@gmail.com"
+		}
+	],
+	"bugs" : {
+		"mail" : "gary.court@gmail.com",
+		"web" : "http://github.com/garycourt/json-search/issues"
+	},
+	"repositories" : [
+		{
+			"type" : "git",
+			"url" : "git://github.com/garycourt/json-search.git"
+		}
+	],
+	"dependencies" : [],
+	"main" : "json-search.js",
+	"keywords" : ["json", "search", "full", "text", "index", "Lucene"]
+}

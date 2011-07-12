@@ -2,9 +2,43 @@
 
 JSON Search is an asynchronous full text indexing and searching library written in JavaScript, and is based off Lucene.
 
-## Status
+JSON Search is still a work in progress, but is currently fully functional and supports almost all of the core features of Lucene.
+It is sorely lacking documentation and unit tests, but you can get a good sense of what it can do by looking at the files in the `src` directory.
 
-JSON Search is very much a work in progress. Feel free to experiment with it, but it is currently not in a state that would be useful in any project.
+## Example
+
+Here's a quick example on how to use JSON Search:
+
+	var js = require('./json-search');
+	var index = new js.MemoryIndex();
+	
+	index.addDocument({
+		title : "JavaScript",
+		body : "JavaScript, also known as ECMAScript, is a prototype-based, object-oriented scripting language that is dynamic, weakly typed and has first-class functions.",
+		edits : 0
+	}, "javascript");
+	//
+	//add other documents here
+	
+	var searcher = new js.Searcher(index);
+	var query = js.QueryParser.parse("+body:dynamic -body:compiled");
+	searcher.search(query, 10, function (err, docs) {
+		if (!err) {
+			console.log(docs);
+		} else {
+			console.error(err);
+		}
+	});
+
+## TODO
+
+*	Better intro/documentation
+*	Write unit tests
+*	Document source code
+*	Add different storage indexes
+*	Add stemmers from jsSnowball
+*	Add language detection
+*	Improve UTF-8 support in parsers/tokenizers
 
 ## License
 
